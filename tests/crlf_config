@@ -1,0 +1,3 @@
+# CR in line 3 should cause error with parse
+
+foo"bar;

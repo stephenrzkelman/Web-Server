@@ -1,0 +1,7 @@
+quote1 '';
+quote2 "";
+escape1 '\'';
+escape2 "\"";
+end1 'hello' 'world'    ;
+end2 "welcome"
+"home";
