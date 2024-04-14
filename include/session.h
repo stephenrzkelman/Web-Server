@@ -3,9 +3,16 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind/bind.hpp>
+#include <boost/beast.hpp>
+#include <gtest/gtest_prod.h>
+#include <iostream>
 using boost::asio::ip::tcp;
 
 class session {
+
+friend class SessionTest;
+FRIEND_TEST(SessionTest, Read);
+
 public:
     // Constructor for the session class.
     // Initializes a new session object with the given IO service for asynchronous operations.
@@ -37,10 +44,14 @@ private:
     //   error: The error code associated with the completion of the write operation.
     void handle_write(const boost::system::error_code& error);
 
+    std::string getResponse();
+
     // Member variables
     boost::asio::ip::tcp::socket socket_;
     enum { max_length = 1024 };
     char data_[max_length];
+    std::string responseHeader;
+    std::string response;
 };
 
 #endif // SESSION_H

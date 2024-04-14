@@ -1,7 +1,7 @@
 #include "session.h"
 
 session::session(boost::asio::io_service& io_service) : socket_(io_service) {
-
+    responseHeader = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\n";
 }
 
 tcp::socket& session::socket() {
@@ -17,8 +17,12 @@ void session::start() {
 
 void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred) {
     if (!error) {
+        std::vector<boost::asio::streambuf::mutable_buffers_type> responseBuffer;
+        responseBuffer.push_back(boost::asio::buffer(responseHeader));
+        responseBuffer.push_back(boost::asio::buffer(data_, max_length));
+        response = boost::beast::buffers_to_string(responseBuffer);
         boost::asio::async_write(socket_,
-            boost::asio::buffer(data_, bytes_transferred),
+            responseBuffer,
             boost::bind(&session::handle_write, this,
             boost::asio::placeholders::error));
     } else {
@@ -35,4 +39,8 @@ void session::handle_write(const boost::system::error_code& error) {
     } else {
         delete this;
     }
+}
+
+std::string session::getResponse() {
+    return response;
 }
