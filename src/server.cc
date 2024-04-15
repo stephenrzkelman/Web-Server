@@ -1,4 +1,5 @@
 #include "server.h"
+#include <boost/bind/bind.hpp>
 
 server::server(boost::asio::io_service& io_service, short port)
 : io_service_(io_service),

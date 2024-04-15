@@ -1,13 +1,16 @@
 #include "session.h"
+#include <boost/bind/bind.hpp>
 
 session::session(boost::asio::io_service& io_service) : socket_(io_service) {
-    responseHeader = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\n";
+    reqHandler = request_handler();
 }
 
 tcp::socket& session::socket() {
     return socket_;
 }
 
+// Start reading from socket into buffer data_
+// Completion handler is handle_read
 void session::start() {
     socket_.async_read_some(boost::asio::buffer(data_, max_length),
         boost::bind(&session::handle_read, this,
@@ -15,14 +18,13 @@ void session::start() {
             boost::asio::placeholders::bytes_transferred));
 }
 
+// Creates HTTP response from a vector of buffers holding responseHeader and data_
+// This vector of buffers is converted to a stirng then written to socket_ 
+// Completion handler of this write to socket_ is handle_write
 void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred) {
     if (!error) {
-        std::vector<boost::asio::streambuf::mutable_buffers_type> responseBuffer;
-        responseBuffer.push_back(boost::asio::buffer(responseHeader));
-        responseBuffer.push_back(boost::asio::buffer(data_, max_length));
-        response = boost::beast::buffers_to_string(responseBuffer);
         boost::asio::async_write(socket_,
-            responseBuffer,
+            reqHandler.handleEchoRequest(boost::asio::buffer(data_, bytes_transferred)),
             boost::bind(&session::handle_write, this,
             boost::asio::placeholders::error));
     } else {
@@ -30,6 +32,9 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
     }
 }
 
+// Read from socket into data_
+// Completion handler is handle_read
+// These two handle functions give us a loop allowing user to send another request after response from first is
 void session::handle_write(const boost::system::error_code& error) {
     if (!error) {
         socket_.async_read_some(boost::asio::buffer(data_, max_length),
@@ -39,8 +44,4 @@ void session::handle_write(const boost::system::error_code& error) {
     } else {
         delete this;
     }
-}
-
-std::string session::getResponse() {
-    return response;
 }
