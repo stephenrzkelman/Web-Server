@@ -267,3 +267,49 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
   config_file.close();
   return return_value;
 }
+
+NginxConfig* NginxConfig::findChildBlock(std::string blockName){
+  int blocks_found = 0;
+  NginxConfig* block;
+  for (const auto& statement : statements_){
+    if(statement->child_block_.get() != nullptr){
+      // for now, we make the assumption that blocks are labeled by a single token
+      if(statement->tokens_.size() == 1 && statement->tokens_[0] == blockName) {
+        blocks_found ++;
+        block = statement->child_block_.get();
+      }
+    }
+  }
+  if (blocks_found == 1){
+    return block;
+  }
+  else if (blocks_found == 0){
+    throw ("No matching block found");
+  }
+  else {
+    throw ("Multiple matching blocks found");
+  }
+}
+
+NginxConfigStatement* NginxConfig::findDirective(std::string directiveName, uint directiveArgCount){
+  int directives_found = 0;
+  NginxConfigStatement* directive;
+  for (const auto& statement : statements_) {
+    if (statement->tokens_[0] == directiveName) {
+      directives_found ++;
+      directive = statement.get();
+    }
+  }
+  if (directives_found == 1){
+    if(directive->tokens_.size() != directiveArgCount + 1){
+      throw ("Directive has incorrect number of arguments");
+    }
+    return directive;
+  }
+  else if (directives_found == 0){
+    throw ("No matching directive found");
+  }
+  else {
+    throw ("Multiple matching directives found");
+  }
+}

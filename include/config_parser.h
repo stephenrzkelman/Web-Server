@@ -1,4 +1,6 @@
 // An nginx config file parser.
+#ifndef CONFIG_PARSER_H
+#define CONFIG_PARSER_H
 
 #include <iostream>
 #include <memory>
@@ -20,6 +22,15 @@ class NginxConfig {
  public:
   std::string ToString(int depth = 0);
   std::vector<std::shared_ptr<NginxConfigStatement>> statements_;
+  // return child-block of an NginxConfigStatement from statements_ whose first token matches `blockName`
+  // if no such NginxConfigStatement exists, or is not unique, throw an error
+  NginxConfig* findChildBlock(std::string blockName);
+  // return NginxConfigStatement from statements_ whose first token (directive/command) matches `directiveName`
+  // if no such NginxConfigStatement exists, or is not unique, throw an error.
+  // if the unique matching NginxConfigStatement has the wrong number of (argument) tokens 
+  // (i.e. some number other than `argCount`) following the directive/command, throw an error
+  // an example `directiveName` would be 'listen', which indicates which port we want the server to listen on
+  NginxConfigStatement* findDirective(std::string directiveName, uint argCount);
 };
 
 // The driver that parses a config file and generates an NginxConfig.
@@ -56,3 +67,5 @@ class NginxConfigParser {
 
   TokenType ParseToken(std::istream* input, std::string* value);
 };
+
+#endif // CONFIG_PARSER_H

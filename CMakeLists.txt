@@ -39,11 +39,12 @@ add_library(session_lib src/session.cc)
 add_library(server_lib src/server.cc)
 add_library(handler_lib src/request_handler.cc)
 add_library(config_parser_lib src/config_parser.cc)
+add_library(server_config_lib src/server_configuration.cc)
 target_link_libraries(server_lib session_lib handler_lib)
 
 # add server executable
 add_executable(server src/server_main.cc)
-target_link_libraries(server session_lib server_lib Boost::system)
+target_link_libraries(server config_parser_lib server_config_lib session_lib server_lib Boost::system)
 
 # Update test executable name, srcs, and deps
 add_executable(all_test tests/config_parser_test.cc tests/request_handler_test.cc)
