@@ -314,3 +314,35 @@ NginxConfigStatement* NginxConfig::findDirective(std::string directiveName, uint
     throw ("Multiple matching directives found");
   }
 }
+
+bool NginxConfig::Validate(std::string contextType){
+  std::queue<NginxConfig*> unprocessed_contexts;
+  std::queue<std::string> unprocessed_context_types;
+  unprocessed_contexts.push(this);
+  unprocessed_context_types.push(contextType);
+  while(!unprocessed_context_types.empty()){
+    NginxConfig* currentContext = unprocessed_contexts.front();
+    std::string currentContextType = unprocessed_context_types.front();
+    unprocessed_contexts.pop();
+    unprocessed_context_types.pop();
+    std::unordered_set<std::string> currentAllowedDirectives = ALLOWED_DIRECTIVES.at(currentContextType);
+    std::unordered_set<std::string> currentAllowedSubcontexts = ALLOWED_SUBCONTEXTS.at(currentContextType);
+    for(const auto& statement : currentContext->statements_){
+      if(currentAllowedDirectives.find(statement->tokens_[0]) != currentAllowedDirectives.end()){
+        continue;
+      }
+      else if(currentAllowedSubcontexts.find(statement->tokens_[0]) != currentAllowedSubcontexts.end()){
+        NginxConfig* subcontext = statement->child_block_.get();
+        if (subcontext == nullptr){
+          return false;
+        }
+        unprocessed_contexts.push(subcontext);
+        unprocessed_context_types.push(statement->tokens_[0]);
+      }
+      else{
+        return false;
+      }
+    }
+  }
+  return true;
+}

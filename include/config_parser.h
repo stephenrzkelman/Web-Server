@@ -4,8 +4,24 @@
 
 #include <iostream>
 #include <memory>
+#include <queue>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
+
+// allowed directives in a given context type
+const std::unordered_map<std::string, std::unordered_set<std::string>> ALLOWED_DIRECTIVES = {
+  {"main", {}},
+  {"http", {}},
+  {"server", {"listen"}}
+};
+// allowed subcontexts which may appear in a given context type
+const std::unordered_map<std::string, std::unordered_set<std::string>> ALLOWED_SUBCONTEXTS = {
+  {"main", {"http"}},
+  {"http", {"server"}},
+  {"server", {""}}
+};
 
 class NginxConfig;
 
@@ -31,6 +47,8 @@ class NginxConfig {
   // (i.e. some number other than `argCount`) following the directive/command, throw an error
   // an example `directiveName` would be 'listen', which indicates which port we want the server to listen on
   NginxConfigStatement* findDirective(std::string directiveName, uint argCount);
+  // validate that the NginxConfig contains only allowed directives and subcontexts
+  bool Validate(std::string contextType = "main");
 };
 
 // The driver that parses a config file and generates an NginxConfig.

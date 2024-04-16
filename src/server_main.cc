@@ -30,7 +30,14 @@ int main(int argc, char* argv[])
 
     NginxConfigParser config_parser;
     NginxConfig config;
-    config_parser.Parse(argv[1], &config);
+    bool successful_parse = config_parser.Parse(argv[1], &config);
+    if(!successful_parse){
+      throw ("Failed to parse config");
+    }
+    bool valid_config = config.Validate();
+    if(!valid_config){
+      throw ("Config contains unrecognized directive or subcontext");
+    }
     ServerConfiguration server_config(&config);
 
     server s(io_service, server_config.getPort());
