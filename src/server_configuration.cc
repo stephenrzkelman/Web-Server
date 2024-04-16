@@ -5,9 +5,6 @@ ServerConfiguration::ServerConfiguration(NginxConfig* config){
     NginxConfig* server_context = http_context->findChildBlock("server");
     NginxConfigStatement* port_directive = server_context->findDirective("listen", 1);
     port_ = (uint) atoi(port_directive->tokens_[1].c_str());
-    if (port_ < 1024 || port_ > 49151) {
-        throw ("Invalid port number");
-    }
     // TODO: extract port information from config
     // TODO: TEST: port should be specified exactly once
     // TODO: TEST: port should be specified inside http{server{...}}

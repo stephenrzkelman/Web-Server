@@ -43,6 +43,14 @@ TEST_F(NginxConfigParserTest, QuotesConfig) {
   );
 }
 
+// Nested braces should pass
+TEST_F(NginxConfigParserTest, NestedBraces) {
+  pass_test(
+    "docker_config",
+    "http {\n  server {\n    listen 80;\n  }\n}\n"
+  );
+}
+
 // Single-quoted strings should be followed by a space or a semicolon
 TEST_F(NginxConfigParserTest, BadSingleQuoteFollow) {
   fail_test("bad_single_quote_follow");
