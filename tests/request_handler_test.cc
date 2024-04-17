@@ -8,18 +8,22 @@ class RequestHandlerTest : public testing::Test {
   request_handler reqHandler;
 };
 
-// Handler should take request buffer and return a buffer sequence including a response buffer and the request buffer itself.
-TEST_F(RequestHandlerTest, EchoRequest) {
-  std::string standard = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\nthis is a test\n";
+// Handler should take poor request buffer and return a buffer sequence of a bad response.
+TEST_F(RequestHandlerTest, BadEchoRequest) {
   std::string reqText = "this is a test\n";
   reqHandler.handleEchoRequest(boost::asio::buffer(reqText));
-  EXPECT_EQ(reqHandler.getEchoResponse(),standard);
+  EXPECT_EQ(reqHandler.getEchoResponse(),reqHandler.getBadResponse());
 }
 
-// Handler should take empty request buffer and return a buffer sequence including a response buffer and the request buffer itself.
+// Handler should take empty request buffer and return a buffer sequence of a bad response.
 TEST_F(RequestHandlerTest, EmptyEchoRequest) {
-  std::string standard = "HTTP/1.1 200 OK\nContent-Type: text/plain\n\n";
   std::string reqText = "";
   reqHandler.handleEchoRequest(boost::asio::buffer(reqText));
-  EXPECT_EQ(reqHandler.getEchoResponse(),standard);
+  EXPECT_EQ(reqHandler.getEchoResponse(),reqHandler.getBadResponse());
+}
+// Handler should take well formed HTTP/1.1 request buffer and return a buffer sequence including a response buffer and the request buffer itself.
+TEST_F(RequestHandlerTest, GoodEchoRequest) {
+  std::string reqText = "GET / HTTP/1.1\r\nHost: 127.0.0.1)\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n";
+  reqHandler.handleEchoRequest(boost::asio::buffer(reqText));
+  EXPECT_EQ(reqHandler.getEchoResponse(),reqHandler.getEchoResponseHeader()+reqText);
 }
