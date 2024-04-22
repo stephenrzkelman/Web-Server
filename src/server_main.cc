@@ -12,7 +12,6 @@
 #include <iostream>
 
 #include "config_parser.h"
-#include "server_configuration.h"
 #include "session.h"
 #include "server.h"
 
@@ -38,9 +37,12 @@ int main(int argc, char* argv[])
     if(!valid_config){
       throw ("Config contains unrecognized directive or subcontext");
     }
-    ServerConfiguration server_config(&config);
+    int port_number = config.findPort();
+    if(port_number == -1){
+      throw ("Port number not provided properly");
+    }
 
-    server s(io_service, server_config.getPort());
+    server s(io_service, port_number);
 
     io_service.run();
   }

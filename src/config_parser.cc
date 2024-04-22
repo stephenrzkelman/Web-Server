@@ -17,6 +17,9 @@
 
 #include "config_parser.h"
 
+NginxConfig::NginxConfig(std::string contextName)
+:contextName(contextName){}
+
 std::string NginxConfig::ToString(int depth) {
   std::string serialized_config;
   for (const auto& statement : statements_) {
@@ -217,9 +220,13 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
         // Error.
         break;
       }
-      NginxConfig* const new_config = new NginxConfig;
-      config_stack.top()->statements_.back().get()->child_block_.reset(
-          new_config);
+      NginxConfigStatement* new_block_statement = config_stack.top()->statements_.back().get();
+      // for now, we make the assumption that blocks must be labeled by a single token
+      if (new_block_statement->tokens_.size() != 1){
+        break;
+      }
+      NginxConfig* const new_config = new NginxConfig(new_block_statement->tokens_[0]);
+      new_block_statement->child_block_.reset(new_config);
       config_stack.push(new_config);
     } else if (token_type == TOKEN_TYPE_END_BLOCK) {
       if (last_token_type != TOKEN_TYPE_STATEMENT_END &&
@@ -269,26 +276,22 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
   return return_value;
 }
 
-NginxConfig* NginxConfig::findChildBlock(std::string blockName){
+NginxConfig* NginxConfig::findChildBlock(std::string targetBlockName){
   int blocks_found = 0;
   NginxConfig* block;
   for (const auto& statement : statements_){
-    if(statement->child_block_.get() != nullptr){
-      // for now, we make the assumption that blocks are labeled by a single token
-      if(statement->tokens_.size() == 1 && statement->tokens_[0] == blockName) {
+    block = statement->child_block_.get();
+    if(block != nullptr){
+      if(block->contextName == targetBlockName) {
         blocks_found ++;
-        block = statement->child_block_.get();
       }
     }
   }
   if (blocks_found == 1){
     return block;
   }
-  else if (blocks_found == 0){
-    throw ("No matching block found");
-  }
   else {
-    throw ("Multiple matching blocks found");
+    return nullptr;
   }
 }
 
@@ -303,28 +306,22 @@ NginxConfigStatement* NginxConfig::findDirective(std::string directiveName, uint
   }
   if (directives_found == 1){
     if(directive->tokens_.size() != directiveArgCount + 1){
-      throw ("Directive has incorrect number of arguments");
+      return nullptr;
     }
     return directive;
   }
-  else if (directives_found == 0){
-    throw ("No matching directive found");
-  }
   else {
-    throw ("Multiple matching directives found");
+    return nullptr;
   }
 }
 
-bool NginxConfig::Validate(std::string contextType){
+bool NginxConfig::Validate(std::string baseContextType){
   std::queue<NginxConfig*> unprocessed_contexts;
-  std::queue<std::string> unprocessed_context_types;
   unprocessed_contexts.push(this);
-  unprocessed_context_types.push(contextType);
-  while(!unprocessed_context_types.empty()){
+  while(!unprocessed_contexts.empty()){
     NginxConfig* currentContext = unprocessed_contexts.front();
-    std::string currentContextType = unprocessed_context_types.front();
+    std::string currentContextType = currentContext->contextName;
     unprocessed_contexts.pop();
-    unprocessed_context_types.pop();
     std::unordered_set<std::string> currentAllowedDirectives = ALLOWED_DIRECTIVES.at(currentContextType);
     std::unordered_set<std::string> currentAllowedSubcontexts = ALLOWED_SUBCONTEXTS.at(currentContextType);
     for(const auto& statement : currentContext->statements_){
@@ -337,7 +334,6 @@ bool NginxConfig::Validate(std::string contextType){
           return false;
         }
         unprocessed_contexts.push(subcontext);
-        unprocessed_context_types.push(statement->tokens_[0]);
       }
       else{
         return false;
@@ -345,4 +341,42 @@ bool NginxConfig::Validate(std::string contextType){
     }
   }
   return true;
+}
+
+int NginxConfig::findPort(){
+  NginxConfig* curConfig = this;
+  if(curConfig->contextName == "main") {
+    curConfig = curConfig->findChildBlock("http");
+    if (curConfig == nullptr) {
+      return -1;
+    }
+  }
+  if(curConfig->contextName == "http"){
+    curConfig = curConfig->findChildBlock("server");
+    if (curConfig == nullptr) {
+      return -1;
+    }
+  }
+  if(curConfig->contextName == "server"){
+    NginxConfigStatement* listen_directive = curConfig->findDirective("listen", 1);
+    if (listen_directive == nullptr) {
+      return -1;
+    }
+    else { 
+      std::string port_arg = listen_directive->tokens_[1];
+      if(port_arg.find_first_not_of(DIGITS) != std::string::npos){
+        return -1;
+      }
+      else{
+        int port_arg_num = atoi(port_arg.c_str());
+        if(port_arg_num < 0 || port_arg_num > 65535){
+          return -1;
+        }
+        else{
+          return port_arg_num;
+        }
+      }
+    }
+  }
+  return -1;
 }

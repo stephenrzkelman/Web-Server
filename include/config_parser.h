@@ -10,6 +10,9 @@
 #include <unordered_set>
 #include <vector>
 
+// string containing digits, to check if strings are numeric
+const std::string DIGITS = "0123456789";
+
 // allowed directives in a given context type
 const std::unordered_map<std::string, std::unordered_set<std::string>> ALLOWED_DIRECTIVES = {
   {"main", {}},
@@ -36,17 +39,25 @@ class NginxConfigStatement {
 // The parsed representation of the entire config.
 class NginxConfig {
  public:
+  NginxConfig(std::string contextName = "main");
   std::string ToString(int depth = 0);
   std::vector<std::shared_ptr<NginxConfigStatement>> statements_;
+  std::string contextName;
   // return child-block of an NginxConfigStatement from statements_ whose first token matches `blockName`
-  // if no such NginxConfigStatement exists, or is not unique, throw an error
+  // if no such NginxConfigStatement exists, or is not unique, return a nullptr
   NginxConfig* findChildBlock(std::string blockName);
   // return NginxConfigStatement from statements_ whose first token (directive/command) matches `directiveName`
-  // if no such NginxConfigStatement exists, or is not unique, throw an error.
+  // if no such NginxConfigStatement exists, or is not unique, return a nullptr
   // if the unique matching NginxConfigStatement has the wrong number of (argument) tokens 
-  // (i.e. some number other than `argCount`) following the directive/command, throw an error
+  // (i.e. some number other than `argCount`) following the directive/command, return a nullptr
   // an example `directiveName` would be 'listen', which indicates which port we want the server to listen on
   NginxConfigStatement* findDirective(std::string directiveName, uint argCount);
+  // iteratesthrough contexts, starting from this->contextName, to end up in main->http->server,
+  // then search for valid "listen" directive and extracts port value from it.
+  // return the specified port for the server.
+  // if no specified port exists in the expected location (inside http{server{...}}), 
+  // or the port value specified is invalid (negative, non-integer, contains letters, etc), return -1
+  int findPort();
   // validate that the NginxConfig contains only allowed directives and subcontexts
   bool Validate(std::string contextType = "main");
 };
