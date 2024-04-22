@@ -6,7 +6,7 @@ This is the docker container used for deployment.
 This must be performed on your local machine. This is not to be done within the usual CS130 development environment.
 
 ## Step 0: Enter project
-    cd fortnie-gamers
+    cd fortnite-gamers
 Before anything, make sure you are in the repo. Make sure your local machine has Docker running.
 
 ## Step 1: Build base image
@@ -19,14 +19,14 @@ Build the original base image named fortnite-gamers, tagged with base.
 Here, you use the project Dockerfile and make the builder/deploy image. my_image is the tag, but it doesn't matter what you name this, my_image is just a placeholder.
 
 ## Step 3: Run image
-    docker run --rm -p 8080:8080 --name my_run my_image:latest    
+    docker run --rm -p 8080:80 --name my_run my_image:latest    
 This command will run the docker image created and now you can get to testing.
 Rm is important as it will delete the container afterwards. ***my_run*** is the name of the containers run. You may change it but make sure it is ***consistent***.
 
 ## Step 4: Test behavior
-    nc localhost 8080   
+    curl localhost:8080   
 ***This test above is specifically for the skeleton code and basic docker image***
-Open a new terminal and type this command in. With the Docker image running this should be a simple echo listener.
+Open a new terminal and type this command in. With the Docker image running this should be a simple HTTP GET echo listener.
 
 ## Step 5: Stop the container
     docker container stop my_run
