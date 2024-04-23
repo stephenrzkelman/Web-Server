@@ -44,6 +44,8 @@ private:
     request_handler reqHandler;
     enum { max_length = 1024 };
     char data_[max_length];
+    //Private member to hold in progress request
+    std::string partialRequest;
 };
 
 #endif // SESSION_H

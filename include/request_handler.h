@@ -22,13 +22,7 @@ class request_handler {
 public:
     //Member function to generate an echo response to given request
     std::vector<boost::asio::mutable_buffer> handleEchoRequest(boost::asio::mutable_buffer request);
-
-    //Member function to parse HTTP request into an object
-    boost::beast::http::message<true, boost::beast::http::string_body, boost::beast::http::fields> parseRequest(boost::asio::mutable_buffer request);
-
-    //Member function to check if HTTP message object is a GET request
-    bool isGetRequest(boost::beast::http::message<true, boost::beast::http::string_body, boost::beast::http::fields> request);
-
+    
     //Member function to return last generated echo response as a string.
     std::string getLastResponse();
 
@@ -44,9 +38,6 @@ private:
 
     //Private member to hold last generated response.
     std::string lastResponse;
-
-    //Private memver to check if request received is valid.
-    bool isValid;
 };
 
 #endif // REQUEST_HANDLER_H

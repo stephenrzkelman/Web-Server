@@ -23,10 +23,21 @@ void session::start() {
 // Completion handler of this write to socket_ is handle_write
 void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred) {
     if (!error) {
+        //Collect string of partial or full request
+        partialRequest += boost::beast::buffers_to_string(boost::asio::buffer(data_, bytes_transferred));
+        //See if the data fits in the buffer, if large, try to read in more data
+        if (bytes_transferred == max_length) {
+            socket_.async_read_some(boost::asio::buffer(data_, max_length),
+                boost::bind(&session::handle_read, this,
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
+                return;
+        }
         boost::asio::async_write(socket_,
-            reqHandler.handleEchoRequest(boost::asio::buffer(data_, bytes_transferred)),
+            reqHandler.handleEchoRequest(boost::asio::buffer(partialRequest)),
             boost::bind(&session::handle_write, this,
             boost::asio::placeholders::error));
+            partialRequest = "";
     } else {
         delete this;
     }
