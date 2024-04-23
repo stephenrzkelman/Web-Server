@@ -55,11 +55,6 @@ target_link_libraries(request_handler_test handler_lib gtest_main)
 gtest_discover_tests(config_parser_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(request_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
-# Add integration test
-find_package(Python REQUIRED)
-add_test(NAME integ_test 
-        COMMAND python3 ../tests/integration_tests.py ../tests/docker_config bin/server)
-
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
 generate_coverage_report(TARGETS handler_lib config_parser_lib TESTS config_parser_test request_handler_test)

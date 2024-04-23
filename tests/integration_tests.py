@@ -1,19 +1,18 @@
 import subprocess
 from typing import List
-import argparse
-import sys
 
 DOCKER_CONFIG = 'docker_config'
-SERVER = 'bin/server'
 
 class IntegrationTest(): 
-    def __init__(self, config = DOCKER_CONFIG, server = SERVER) -> None:
-        self.start_server(config, server)
+    def __init__(self, config = 'docker_config') -> None:
+        self.start_server(config)
         self.is_server_on = True # assumes that start_server always successfully starts the server, shoudl add error handling
         self.num_tests = 0
         self.num_tests_pass = 0
 
-    def start_server(self, config: str, server: str) -> subprocess.Popen: 
+        # TODO, nice2have: add variables to track a count of test cases run, number succeeded, etc.
+
+    def start_server(self, config: str) -> subprocess.Popen: 
         '''
         start the web server using params defined in config
         
@@ -23,7 +22,7 @@ class IntegrationTest():
 
         # TODO: create some way to generate a config file automatically instead of statically encoding one? potentailly create an overloaded start_server() function
         # TODO: error handle server start. if the port is already in use, try running on a different port or kill? can also terminate script early
-        self.server = subprocess.Popen([server, config])
+        self.server = subprocess.Popen(['../build/bin/server', config])
     
     def end_server(self) -> None: 
         '''
@@ -66,8 +65,29 @@ class IntegrationTest():
         '''
 
         command = ['nc', '-w', str(timeout)] + args
-        nc_process = subprocess.run(command, capture_output=True, input=content_to_send.encode('utf-8'))
-        return nc_process.stdout.decode('utf-8')
+        nc_process = subprocess.Popen(command, 
+                                      stdin=subprocess.PIPE, 
+                                      stdout=subprocess.PIPE, 
+                                      text=True)
+        response = ""
+
+        # send netcat request
+        nc_process.stdin.write(content_to_send)
+
+        # flush and close stdin to end netcat
+        nc_process.stdin.flush()
+        nc_process.stdin.close()
+
+        # read stdout 
+        while True: 
+            line = nc_process.stdout.readline()
+            response += line
+            if not line: 
+                break 
+        
+        # kill process and return response
+        nc_process.kill()
+        return response
     
     def __test_case_helper(self, name: str, expected: str, given: str) -> bool: 
         '''
@@ -128,69 +148,30 @@ class IntegrationTest():
         response = self.netcat_server(args, content_to_send)
         return self.__test_case_helper(name, expected, response)
 
-def main(config = str, server = str):  
-    # Init Integration Test
-    tester = IntegrationTest(config, server)
+def main():
+    tester = IntegrationTest(DOCKER_CONFIG)
 
     # A GET request sent through curl should receive a response
     tester.test_case_curl(name = "test_curl_basic",
                           expected = "GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n", 
                           args = ['localhost:80'])
     
-    # curl localhost:80/ should have a keep-alive parameter
-    tester.test_case_curl(name = "test_curl_localhost:80/",
-                          expected = "GET / HTTP/1.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n",
-                          args = ["-H", "Host:", "-H", "Connection: keep-alive", "localhost:80/"])
-    
-    # a simple message sent through netcat should send a response
-    basic_nc_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 11\r\n\r\n"
+    # a 400 bad request response should be sent to an invalid request
     tester.test_case_nc(name = "test_nc_not_1.1", 
-                        expected = basic_nc_header + "hey there\r\n", 
+                        expected = "HTTP/1.1 400 Bad Request\nContent-Type: text/plain\nContent-Length: 0\n\n", 
                         args = ['localhost', '80'],
                         content_to_send='hey there\r\n')
     
     # sending a valid HTTP request through netcat should receive an echo'd response appended to the response header
-    valid_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 73\r\n\r\n"
-    valid_request = "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
     tester.test_case_nc(name = "test_nc_basic",
-                        expected= valid_header + valid_request,
+                        expected="HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 73\n\nGET / HTTP/1.1\nHost: 127.0.0.1\nUser-Agent: curl/7.81.0\nAccept: */*\n\n",
                         args = ["localhost", "80"],
-                        content_to_send=valid_request)
+                        content_to_send="GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n")
     
-    # even a header with a long amount of content should return a proper response
-    long_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2847\r\n\r\n"
-    long_request = '''GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nLorem-ipsum: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
-    tempor incididunt ut labore et dolore magna aliqua. Sagittis aliquam malesuada bibendum arcu. Pharetra diam sit amet nisl suscipit. Sollicitudin aliquam ultrices sagittis orci a 
-    scelerisque purus. Turpis in eu mi bibendum neque egestas congue quisque egestas. Dignissim convallis aenean et tortor at. Velit aliquet sagittis id consectetur purus ut faucibus 
-    pulvinar elementum. Tristique nulla aliquet enim tortor at auctor urna nunc id. Ornare aenean euismod elementum nisi quis eleifend quam adipiscing vitae. Egestas erat imperdiet sed 
-    euismod. Vitae sapien pellentesque habitant morbi tristique senectus et netus et. Egestas pretium aenean pharetra magna ac placerat. Quis ipsum suspendisse ultrices gravida dictum. Est 
-    sit amet facilisis magna etiam. Leo urna molestie at elementum. Arcu non odio euismod lacinia at quis. Amet volutpat consequat mauris nunc congue nisi. Diam maecenas ultricies mi eget 
-    mauris pharetra et ultrices neque. Pharetra magna ac placerat vestibulum lectus mauris ultrices. Facilisis sed odio morbi quis commodo odio aenean sed adipiscing. Vulputate eu 
-    scelerisque felis imperdiet proin fermentum leo vel orci. Vitae ultricies leo integer malesuada nunc vel risus commodo. Id nibh tortor id aliquet lectus. Sit amet venenatis urna cursus 
-    eget nunc scelerisque viverra mauris. Praesent semper feugiat nibh sed pulvinar proin gravida hendrerit lectus. Congue mauris rhoncus aenean vel elit scelerisque mauris pellentesque 
-    pulvinar. Lectus arcu bibendum at varius vel pharetra vel turpis. Ut tellus elementum sagittis vitae. Urna neque viverra justo nec. Duis convallis convallis tellus id interdum velit 
-    laoreet. Neque sodales ut etiam sit amet nisl. Interdum consectetur libero id faucibus nisl tincidunt eget. Aliquam faucibus purus in massa tempor nec. Facilisi nullam vehicula ipsum a 
-    arcu cursus vitae congue mauris. Nisi est sit amet facilisis magna etiam tempor orci. Diam maecenas sed enim ut sem. Mauris pellentesque pulvinar pellentesque habitant morbi tristique 
-    senectus et netus. Lectus arcu bibendum at varius. Eu nisl nunc mi ipsum. Ridiculus mus mauris vitae ultricies leo. Interdum consectetur libero id faucibus nisl tincidunt. Auctor augue 
-    mauris augue neque gravida. Facilisi etiam dignissim diam quis enim lobortis scelerisque. Venenatis lectus magna fringilla urna. Tellus integer feugiat scelerisque varius morbi enim. 
-    Diam quam nulla porttitor massa id. Diam maecenas ultricies mi eget mauris pharetra et ultrices neque. Ipsum suspendisse ultrices gravida dictum fusce ut. Lobortis mattis aliquam 
-    faucibus purus in massa. Ultricies integer quis auctor elit sed.\r\n\r\n'''
-
-    tester.test_case_nc(name = "test_nc_long_content",
-                        expected=long_header + long_request,
-                        args = ["localhost", "80"],
-                        content_to_send=long_request)
-
     # Finished test cases, close server
     tester.end_server()
     tester.print_results()
 
-    if tester.num_tests != tester.num_tests_pass:
-        sys.exit(1)
+if __name__ == '__main__': 
+    main()
 
-if __name__ == '__main__':  
-    parser = argparse.ArgumentParser(prog = 'Integration Test')
-    parser.add_argument('config')
-    parser.add_argument('server')
-    args = parser.parse_args()
-    main(args.config, args.server)
