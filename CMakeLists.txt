@@ -62,4 +62,4 @@ add_test(NAME integ_test
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
-generate_coverage_report(TARGETS handler_lib config_parser_lib TESTS config_parser_test request_handler_test)
+generate_coverage_report(TARGETS handler_lib config_parser_lib session_lib server_lib TESTS config_parser_test request_handler_test)
