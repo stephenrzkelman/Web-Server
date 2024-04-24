@@ -16,4 +16,5 @@ RUN apt-get update && apt-get install -y \
     libboost-system-dev \
     libgmock-dev \
     libgtest-dev \
-    netcat
+    netcat \ 
+    python3
