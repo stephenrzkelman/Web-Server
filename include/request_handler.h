@@ -20,16 +20,16 @@ const uint BAD_REQUEST_STATUS = 400;
 class request_handler {
 
 public:
-    //Member function to generate an echo response to given request
-    std::vector<boost::asio::mutable_buffer> handleEchoRequest(boost::asio::mutable_buffer request);
+    //Pure virtual function to generate a response to a given request
+    virtual std::vector<boost::asio::mutable_buffer> handleRequest(boost::asio::mutable_buffer request) = 0;
     
-    //Member function to return last generated echo response as a string.
+    //Member function to return last generated response as a string.
     std::string getLastResponse();
 
-    //(For Testing) Member function to return echo response header as a string.
+    //(For Testing) Member function to return response header as a string.
     std::string getLastResponseHeader();
     
-private:
+protected:
     //Function to formulate the response header
     std::string makeHeader(uint statusCode, std::string contentType, size_t contentLength);
 

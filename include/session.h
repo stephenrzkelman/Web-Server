@@ -2,6 +2,7 @@
 #define SESSION_H
 
 #include <boost/asio.hpp>
+#include <memory>
 #include <request_handler.h>
 
 using boost::asio::ip::tcp;
@@ -41,7 +42,7 @@ private:
 
     // Member variables
     boost::asio::ip::tcp::socket socket_;
-    request_handler reqHandler;
+    std::unique_ptr<request_handler> reqHandler;
     enum { max_length = 1024 };
     char data_[max_length];
     //Private member to hold in progress request

@@ -1,8 +1,10 @@
 #include "session.h"
+#include "echo_request_handler.h"
 #include <boost/bind/bind.hpp>
 
 session::session(boost::asio::io_service& io_service) : socket_(io_service) {
-    reqHandler = request_handler();
+    // TODO: reqHandler will be assigned echo or static handler based on url
+    reqHandler = std::make_unique<echo_request_handler>();
 }
 
 tcp::socket& session::socket() {
@@ -34,10 +36,10 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
                 return;
         }
         boost::asio::async_write(socket_,
-            reqHandler.handleEchoRequest(boost::asio::buffer(partialRequest)),
+            reqHandler->handleRequest(boost::asio::buffer(partialRequest)),
             boost::bind(&session::handle_write, this,
             boost::asio::placeholders::error));
-            partialRequest = "";
+        partialRequest = "";
     } else {
         delete this;
     }
