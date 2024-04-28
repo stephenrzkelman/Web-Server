@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "config_parser.h"
 #include <string>
+#include <vector>
 
 class NginxConfigParserTest : public testing::Test {
   protected:
@@ -87,11 +88,6 @@ TEST_F(NginxConfigParserTest, MissingSemicolon) {
   parse_fail("unterminated_outer_line_config");
 }
 
-// subcontexts must be labeled by single word/token
-TEST_F(NginxConfigParserTest, OverlabeledContext) {
-  parse_fail("over_labeled_config");
-}
-
 class NginxConfigTest : public testing :: Test {
   protected:
     void SetUp(const char* file_name) {
@@ -109,6 +105,24 @@ class NginxConfigTest : public testing :: Test {
     }
     void find_port_failure(){
       EXPECT_EQ(full_parsed_config.findPort(), -1);
+    }
+    void find_paths_success(int expected_servlets, std::vector<std::string> expected_behaviors, std::vector<std::string> expected_roots){
+      std::vector<std::unique_ptr<Servlet>> servlets = full_parsed_config.findPaths();
+      std::vector<std::string> behaviors;
+      std::vector<std::string> roots;
+      for(const std::unique_ptr<Servlet>& servlet : servlets){
+        behaviors.push_back(servlet.get()->servletBehavior());
+        roots.push_back(servlet.get()->servletRoot());
+      }
+      EXPECT_EQ(servlets.size(), expected_servlets);
+      for(int i = 0; i < servlets.size(); i++){
+        EXPECT_EQ(expected_behaviors[i], behaviors[i]);
+        EXPECT_EQ(expected_roots[i], roots[i]);
+      }
+    }
+    void find_paths_failure(){
+      std::vector<std::unique_ptr<Servlet>> servlets = full_parsed_config.findPaths();
+      EXPECT_EQ(servlets.size(), 0);
     }
 
   NginxConfig full_parsed_config;
@@ -163,4 +177,60 @@ TEST_F(NginxConfigTest, BadPortProvided){
   find_port_failure();
   SetUp("port_too_large_config");
   find_port_failure();
+}
+
+// if a context gets arguments but doesn't require any, it should be flagged
+TEST_F(NginxConfigTest, OverlabeledHTTPConfig){
+  SetUp("over_labeled_config");
+  find_port_failure();
+  find_paths_failure();
+}
+
+// should fail to find paths in a config which doesn't specify any
+TEST_F(NginxConfigTest, NoPaths){
+  SetUp("docker_config");
+  find_paths_failure();
+}
+
+// should succeed at extracting single servlet in a config which specifies only 1 path
+TEST_F(NginxConfigTest, OnePath){
+  SetUp("one_path_config");
+  find_paths_success(1, {"echo"}, {""});
+}
+
+// should succeed at extracting 2 servlets from config which specifies 2 paths
+TEST_F(NginxConfigTest, TwoPaths){
+  SetUp("two_paths_config");
+  find_paths_success(2, {"echo","content"}, {"","/etc/files"});
+}
+
+// should fail if any match modifier is invalid
+TEST_F(NginxConfigTest, InvalidMatchModifier){
+  SetUp("invalid_match_modifier_config");
+  find_paths_failure();
+}
+
+// should fail if more than one server block is provided
+TEST_F(NginxConfigTest, MultipleServerBlocks){
+  SetUp("multiple_server_blocks_config");
+  find_port_failure();
+  find_paths_failure();
+}
+
+// should fail if multiple behaviors are specified
+TEST_F(NginxConfigTest, AmbiguousBehavior){
+  SetUp("ambiguous_behavior_config");
+  find_paths_failure();
+}
+
+// should fail if unrecognized behavior is specified
+TEST_F(NginxConfigTest, UnrecognizedBehavior){
+  SetUp("undefined_behavior_config");
+  find_paths_failure();
+}
+
+// default behavior should be content
+TEST_F(NginxConfigTest, DefaultBehavior){
+  SetUp("default_behavior_config");
+  find_paths_success(1, {"content"}, {"/etc/files"});
 }

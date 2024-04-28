@@ -40,8 +40,10 @@ add_library(server_lib src/server.cc)
 add_library(handler_lib src/request_handler.cc)
 add_library(echo_handler_lib src/echo_request_handler.cc)
 add_library(config_parser_lib src/config_parser.cc)
+add_library(servlet_lib src/servlet.cc)
 target_link_libraries(echo_handler_lib handler_lib)
 target_link_libraries(server_lib session_lib echo_handler_lib)
+target_link_libraries(config_parser_lib servlet_lib)
 
 # add server executable
 add_executable(server src/server_main.cc)
@@ -52,10 +54,14 @@ add_executable(config_parser_test tests/config_parser_test.cc)
 target_link_libraries(config_parser_test config_parser_lib gtest_main)
 add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
+add_executable(servlet_test tests/servlet_test.cc)
+target_link_libraries(servlet_test servlet_lib gtest_main)
 
 # Update with test binary
 gtest_discover_tests(config_parser_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(echo_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(servlet_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
 
 # Add integration test
 find_package(Python REQUIRED)
@@ -64,4 +70,4 @@ add_test(NAME integ_test
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
-generate_coverage_report(TARGETS handler_lib config_parser_lib session_lib server_lib echo_handler_lib TESTS config_parser_test echo_handler_test)
+generate_coverage_report(TARGETS handler_lib config_parser_lib session_lib server_lib echo_handler_lib servlet_lib TESTS config_parser_test echo_handler_test servlet_test)

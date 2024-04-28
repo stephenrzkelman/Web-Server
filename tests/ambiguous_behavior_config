@@ -1,0 +1,8 @@
+http{
+    server{
+        location /path/ {
+            behavior echo;
+            behavior content;
+        }
+    }
+}

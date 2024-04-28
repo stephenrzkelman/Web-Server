@@ -221,10 +221,6 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
         break;
       }
       NginxConfigStatement* new_block_statement = config_stack.top()->statements_.back().get();
-      // for now, we make the assumption that blocks must be labeled by a single token
-      if (new_block_statement->tokens_.size() != 1){
-        break;
-      }
       NginxConfig* const new_config = new NginxConfig(new_block_statement->tokens_[0]);
       new_block_statement->child_block_.reset(new_config);
       config_stack.push(new_config);
@@ -276,43 +272,30 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
   return return_value;
 }
 
-NginxConfig* NginxConfig::findChildBlock(std::string targetBlockName){
-  int blocks_found = 0;
-  NginxConfig* block;
+std::vector<NginxConfig*> NginxConfig::findChildBlocks(std::string targetBlockName, uint argCount){
+  std::vector<NginxConfig*> blocks_found;
+  NginxConfig* next_block;
   for (const auto& statement : statements_){
-    block = statement->child_block_.get();
-    if(block != nullptr){
-      if(block->contextName == targetBlockName) {
-        blocks_found ++;
+    next_block = statement->child_block_.get();
+    if(next_block != nullptr){
+      if(next_block->contextName == targetBlockName && 
+        statement->tokens_.size() == argCount + 1) {
+        blocks_found.push_back(next_block);
       }
     }
   }
-  if (blocks_found == 1){
-    return block;
-  }
-  else {
-    return nullptr;
-  }
+  return blocks_found;
 }
 
-NginxConfigStatement* NginxConfig::findDirective(std::string directiveName, uint directiveArgCount){
-  int directives_found = 0;
-  NginxConfigStatement* directive;
+std::vector<NginxConfigStatement*> NginxConfig::findDirectives(std::string directiveName, uint argCount){
+  std::vector<NginxConfigStatement*> directives_found;
   for (const auto& statement : statements_) {
-    if (statement->tokens_[0] == directiveName) {
-      directives_found ++;
-      directive = statement.get();
+    if (statement->tokens_[0] == directiveName &&
+      statement->tokens_.size() == argCount + 1) {
+      directives_found.push_back(statement.get());
     }
   }
-  if (directives_found == 1){
-    if(directive->tokens_.size() != directiveArgCount + 1){
-      return nullptr;
-    }
-    return directive;
-  }
-  else {
-    return nullptr;
-  }
+  return directives_found;
 }
 
 bool NginxConfig::Validate(std::string baseContextType){
@@ -345,24 +328,28 @@ bool NginxConfig::Validate(std::string baseContextType){
 
 int NginxConfig::findPort(){
   NginxConfig* curConfig = this;
-  if(curConfig->contextName == "main") {
-    curConfig = curConfig->findChildBlock("http");
-    if (curConfig == nullptr) {
+  std::vector<NginxConfig*> possible_contexts;
+  if(curConfig->contextName == MAIN) {
+    possible_contexts = curConfig->findChildBlocks(HTTP, 0);
+    if(possible_contexts.size() != 1){
       return -1;
     }
+    curConfig = possible_contexts[0];
   }
-  if(curConfig->contextName == "http"){
-    curConfig = curConfig->findChildBlock("server");
-    if (curConfig == nullptr) {
+  if(curConfig->contextName == HTTP){
+    possible_contexts = curConfig->findChildBlocks(SERVER, 0);
+    if (possible_contexts.size() != 1) {
       return -1;
     }
+    curConfig = possible_contexts[0];
   }
-  if(curConfig->contextName == "server"){
-    NginxConfigStatement* listen_directive = curConfig->findDirective("listen", 1);
-    if (listen_directive == nullptr) {
+  if(curConfig->contextName == SERVER){
+    std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(LISTEN, 1);
+    if (possible_directives.size() != 1) {
       return -1;
     }
     else { 
+      NginxConfigStatement* listen_directive = possible_directives[0];
       std::string port_arg = listen_directive->tokens_[1];
       if(port_arg.find_first_not_of(DIGITS) != std::string::npos){
         return -1;
@@ -379,4 +366,102 @@ int NginxConfig::findPort(){
     }
   }
   return -1;
+}
+
+std::string NginxConfig::findServletBehavior(){
+  NginxConfig* curConfig = this;
+  if(curConfig->contextName == LOCATION){
+    std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(BEHAVIOR, 1);
+    if (possible_directives.size() == 0) {
+      // Default behavior is CONTENT
+      return CONTENT;
+    }
+    else if(possible_directives.size() > 1){
+      return "";
+    }
+    else { 
+      NginxConfigStatement* behavior_directive = possible_directives[0];
+      std::string behavior = behavior_directive->tokens_[1];
+      if(VALID_BEHAVIORS.find(behavior) == VALID_BEHAVIORS.end()){
+        return "";
+      }
+      else{
+        return behavior;
+      }
+    }
+  }
+  return "";
+}
+
+std::string NginxConfig::findServletRoot(){
+  NginxConfig* curConfig = this;
+  if(curConfig->contextName == LOCATION){
+    std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(ROOT, 1);
+    if(possible_directives.size() != 1){
+      return "";
+    }
+    else { 
+      NginxConfigStatement* root_directive = possible_directives[0];
+      std::string root = root_directive->tokens_[1];
+      return root;
+    }
+  }
+  return "";
+}
+
+std::vector<std::unique_ptr<Servlet>> NginxConfig::findPaths(){
+  NginxConfig* curConfig = this;
+  std::vector<NginxConfig*> possible_contexts;
+  std::vector<std::unique_ptr<Servlet>> servlets;
+  if(curConfig->contextName == MAIN) {
+    possible_contexts = curConfig->findChildBlocks(HTTP, 0);
+    if(possible_contexts.size() != 1){
+      return std::vector<std::unique_ptr<Servlet>>();
+    }
+    curConfig = possible_contexts[0];
+  }
+  if(curConfig->contextName == HTTP){
+    possible_contexts = curConfig->findChildBlocks(SERVER, 0);
+    if (possible_contexts.size() != 1) {
+      return std::vector<std::unique_ptr<Servlet>>();
+    }
+    curConfig = possible_contexts[0];
+  }
+  if(curConfig->contextName == SERVER){
+    std::vector<NginxConfigStatement*> modified_location_directives = curConfig->findDirectives(LOCATION, 2);
+    for (const auto& directive : modified_location_directives){
+      if (MATCH_TYPES.find(directive->tokens_[1]) == MATCH_TYPES.end()){
+        // return empty array if invalid match modifier string provided, to indicate error
+        return std::vector<std::unique_ptr<Servlet>>();
+      }
+      std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
+      std::string servlet_root = directive->child_block_.get()->findServletRoot();
+      if ((servlet_root == "" && servlet_behavior != ECHO) || servlet_behavior == ""){
+        return std::vector<std::unique_ptr<Servlet>>();
+      }
+      servlets.push_back(
+        std::make_unique<Servlet>(Servlet(
+          directive->tokens_[1],
+          directive->tokens_[2],
+          servlet_behavior,
+          servlet_root
+      )));
+    }
+    std::vector<NginxConfigStatement*> prefix_location_directives = curConfig->findDirectives(LOCATION, 1);
+    for (const auto& directive : prefix_location_directives){
+      std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
+      std::string servlet_root = directive->child_block_.get()->findServletRoot();
+      if ((servlet_root == "" && servlet_behavior != ECHO) || servlet_behavior == ""){
+        return std::vector<std::unique_ptr<Servlet>>();
+      }
+      servlets.push_back(
+        std::make_unique<Servlet>(Servlet(
+          STANDARD_PREFIX_MATCH,
+          directive->tokens_[1],
+          servlet_behavior,
+          servlet_root
+      )));
+    }
+  }
+  return servlets;
 }
