@@ -10,20 +10,35 @@
 #include <unordered_set>
 #include <vector>
 
+#include "servlet.h"
+
 // string containing digits, to check if strings are numeric
 const std::string DIGITS = "0123456789";
 
+// some config keywords
+// names of subcontexts
+const std::string MAIN = "main";
+const std::string HTTP = "http";
+const std::string SERVER = "server";
+const std::string LOCATION = "location";
+// directives/commands
+const std::string LISTEN = "listen";
+const std::string BEHAVIOR = "behavior";
+const std::string ROOT = "root";
+
 // allowed directives in a given context type
 const std::unordered_map<std::string, std::unordered_set<std::string>> ALLOWED_DIRECTIVES = {
-  {"main", {}},
-  {"http", {}},
-  {"server", {"listen"}}
+  {MAIN, {}},
+  {HTTP, {}},
+  {SERVER, {LISTEN}},
+  {LOCATION, {BEHAVIOR, ROOT}}
 };
 // allowed subcontexts which may appear in a given context type
 const std::unordered_map<std::string, std::unordered_set<std::string>> ALLOWED_SUBCONTEXTS = {
-  {"main", {"http"}},
-  {"http", {"server"}},
-  {"server", {""}}
+  {MAIN, {HTTP}},
+  {HTTP, {SERVER}},
+  {SERVER, {LOCATION}},
+  {LOCATION, {}}
 };
 
 class NginxConfig;
@@ -36,6 +51,8 @@ class NginxConfigStatement {
   std::unique_ptr<NginxConfig> child_block_;
 };
 
+class Servlet;
+
 // The parsed representation of the entire config.
 class NginxConfig {
  public:
@@ -45,19 +62,34 @@ class NginxConfig {
   std::string contextName;
   // return child-block of an NginxConfigStatement from statements_ whose first token matches `blockName`
   // if no such NginxConfigStatement exists, or is not unique, return a nullptr
-  NginxConfig* findChildBlock(std::string blockName);
+  std::vector<NginxConfig*> findChildBlocks(std::string blockName, uint argCount);
   // return NginxConfigStatement from statements_ whose first token (directive/command) matches `directiveName`
   // if no such NginxConfigStatement exists, or is not unique, return a nullptr
   // if the unique matching NginxConfigStatement has the wrong number of (argument) tokens 
   // (i.e. some number other than `argCount`) following the directive/command, return a nullptr
   // an example `directiveName` would be 'listen', which indicates which port we want the server to listen on
-  NginxConfigStatement* findDirective(std::string directiveName, uint argCount);
-  // iteratesthrough contexts, starting from this->contextName, to end up in main->http->server,
+  std::vector<NginxConfigStatement*> findDirectives(std::string directiveName, uint argCount);
+  // iterates through contexts, starting from this->contextName, to end up in main->http->server,
   // then search for valid "listen" directive and extracts port value from it.
   // return the specified port for the server.
   // if no specified port exists in the expected location (inside http{server{...}}), 
   // or the port value specified is invalid (negative, non-integer, contains letters, etc), return -1
   int findPort();
+  // iterates through contexts, starting from this->contextName, to end up in main->http->server,
+  // then searches for valid "location" blocks and extracts match function and desired behavior from it
+  // return vector of items, each containing this matching functionality, as well as the desired behavior
+  std::vector<std::unique_ptr<Servlet>> findPaths();
+  // to be called from main->http->server->location context,
+  // searches for valid "behavior" directive and extracts specified behavior from it
+  // return the specified behavior
+  // if no specified behavior exists in the expected location,
+  // or is invalid (not listed in VALID_BEHAVIORS), return an empty string
+  std::string findServletBehavior();
+  // to be called from main->http->server->location context,
+  // seraches for valid "root" directive and extracts specified root directory from it
+  // return the specified root directory
+  // if no specified root exists in the expected location,return an empty string
+  std::string findServletRoot();
   // validate that the NginxConfig contains only allowed directives and subcontexts
   bool Validate(std::string contextType = "main");
 };
