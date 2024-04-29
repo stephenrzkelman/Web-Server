@@ -22,7 +22,7 @@ void session::start() {
 
 // Creates HTTP response from a vector of buffers holding responseHeader and data_
 // This vector of buffers is converted to a stirng then written to socket_ 
-// Completion handler of this write to socket_ is handle_write
+// Completion handler of this write to socket_ is handle_write  
 void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred) {
     if (!error) {
         //Collect string of partial or full request

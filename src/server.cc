@@ -1,5 +1,6 @@
 #include "server.h"
 #include <boost/bind/bind.hpp>
+#include <boost/log/trivial.hpp>
 
 server::server(boost::asio::io_service& io_service, short port)
 : io_service_(io_service),
@@ -8,6 +9,7 @@ server::server(boost::asio::io_service& io_service, short port)
 }
 
 void server::start_accept() {
+    BOOST_LOG_TRIVIAL(info) << "Starting Accept";
     session* new_session = new session(io_service_);
     acceptor_.async_accept(new_session->socket(),
         boost::bind(&server::handle_accept, this, new_session,

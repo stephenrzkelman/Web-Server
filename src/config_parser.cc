@@ -14,7 +14,7 @@
 #include <stack>
 #include <string>
 #include <vector>
-
+#include <boost/log/trivial.hpp>
 #include "config_parser.h"
 
 NginxConfig::NginxConfig(std::string contextName)
@@ -174,6 +174,8 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream* input,
 }
 
 bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
+  // Log and init parsing
+  BOOST_LOG_TRIVIAL(info) << "Starting Parse"; 
   std::stack<NginxConfig*> config_stack;
   config_stack.push(config);
   TokenType last_token_type = TOKEN_TYPE_START;
@@ -181,7 +183,10 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
   while (true) {
     std::string token;
     token_type = ParseToken(config_file, &token);
-    printf ("%s: %s\n", TokenTypeAsString(token_type), token.c_str());
+
+    // Log each token type followed by the token itself as parser loops 
+    BOOST_LOG_TRIVIAL(info) << std::string(TokenTypeAsString(token_type)) + ": " + token + "\n";
+
     if (token_type == TOKEN_TYPE_ERROR) {
       break;
     }

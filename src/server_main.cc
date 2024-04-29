@@ -10,13 +10,28 @@
 
 #include <cstdlib>
 #include <iostream>
-
+#include "logging.h"
 #include "config_parser.h"
 #include "session.h"
 #include "server.h"
+#include <boost/log/trivial.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+
+namespace logging = boost::log;
+namespace src = boost::log::sources;
+
 
 int main(int argc, char* argv[])
 {
+  using namespace logging::trivial;
+
+  // Initialize logging, 
+  init_logging();
+  BOOST_LOG_TRIVIAL(info) << "Logging Initialized, starting server executable";
+  // src::severity_logger< severity_level > lg;
+  // BOOST_LOG_SEV(lg, info) << "This is an informational message with lg severity";
+
+  // TODO: add logs to the logic here. Use BOOST_LOG_SEV as needed for errors.
   try
   {
     if (argc != 2)
