@@ -20,18 +20,15 @@
 namespace logging = boost::log;
 namespace src = boost::log::sources;
 
-
 int main(int argc, char* argv[])
 {
   using namespace logging::trivial;
 
-  // Initialize logging, 
+  // Initialize logging, Demonstrate logging capability.
   init_logging();
   BOOST_LOG_TRIVIAL(info) << "Logging Initialized, starting server executable";
-  // src::severity_logger< severity_level > lg;
-  // BOOST_LOG_SEV(lg, info) << "This is an informational message with lg severity";
 
-  // TODO: add logs to the logic here. Use BOOST_LOG_SEV as needed for errors.
+  // TODO: add logs to the logic here.
   try
   {
     if (argc != 2)
