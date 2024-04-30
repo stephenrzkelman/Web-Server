@@ -3,7 +3,7 @@
 
 #include <boost/asio.hpp>
 #include <memory>
-#include <request_handler.h>
+#include "request_manager.h"
 
 using boost::asio::ip::tcp;
 
@@ -14,7 +14,7 @@ public:
     // Initializes a new session object with the given IO service for asynchronous operations.
     // Parameters:
     //   io_service: Reference to the Boost.Asio IO service to be used for asynchronous operations.
-    session(boost::asio::io_service& io_service);
+    session(boost::asio::io_service& io_service, std::shared_ptr<RequestManager> manager);
 
     // Member function to access the TCP socket associated with the session.
     // Returns:
@@ -42,7 +42,7 @@ private:
 
     // Member variables
     boost::asio::ip::tcp::socket socket_;
-    std::unique_ptr<request_handler> reqHandler;
+    std::shared_ptr<RequestManager> request_manager_;
     enum { max_length = 1024 };
     char data_[max_length];
     //Private member to hold in progress request

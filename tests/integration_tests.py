@@ -132,13 +132,13 @@ def main(config = str, server = str):
 
     # A GET request sent through curl should receive a response
     tester.test_case_curl(name = "test_curl_basic",
-                          expected = "GET / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n", 
-                          args = ['localhost:80'])
+                          expected = "GET /echo HTTP/1.1\r\nHost: localhost\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n", 
+                          args = ['localhost:80/echo'])
     
     # curl localhost:80/ should have a keep-alive parameter
-    tester.test_case_curl(name = "test_curl_localhost:80/",
-                          expected = "GET / HTTP/1.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n",
-                          args = ["-H", "Host:", "-H", "Connection: keep-alive", "localhost:80/"])
+    tester.test_case_curl(name = "test_curl_localhost:80",
+                          expected = "GET /echo HTTP/1.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n",
+                          args = ["-H", "Host:", "-H", "Connection: keep-alive", "localhost:80/echo"])
     
     # a simple message sent through netcat should send a response
     basic_nc_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 11\r\n\r\n"
@@ -148,8 +148,8 @@ def main(config = str, server = str):
                         content_to_send='hey there\r\n')
     
     # sending a valid HTTP request through netcat should receive an echo'd response appended to the response header
-    valid_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 73\r\n\r\n"
-    valid_request = "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
+    valid_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 77\r\n\r\n"
+    valid_request = "GET /echo HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
     tester.test_case_nc(name = "test_nc_basic",
                         expected= valid_header + valid_request,
                         args = ["localhost", "80"],

@@ -26,46 +26,46 @@ class ServletTest : public testing::Test {
 
 // exact-matching path should return proper priority and full path length
 TEST_F(ServletTest, ExactMatchSuccess) {
-  SetUp(EXACT_MATCH, "/echo", ECHO, "");
+  SetUp(EXACT_MATCH, "/echo", ECHO_REQUEST, "");
   match_success("/echo", EXACT_MATCH_PRIORITY, 5);
 }
 
 // exact matching path when no match found
 TEST_F(ServletTest, ExactMatchFailure) {
-  SetUp(EXACT_MATCH, "/echo", ECHO, "");
+  SetUp(EXACT_MATCH, "/echo", ECHO_REQUEST, "");
   match_failure("/echo1");
 }
 
 // prefix match tests
 TEST_F(ServletTest, PrefixMatchSuccess) {
-  SetUp(PREFERRED_PREFIX_MATCH, "/static/", CONTENT, "/etc/files");
+  SetUp(PREFERRED_PREFIX_MATCH, "/static/", SERVE_CONTENT, "/etc/files");
   match_success("/static/img.png", PREFERRED_PREFIX_MATCH_PRIORITY, 8);
   TearDown();
-  SetUp(STANDARD_PREFIX_MATCH, "/content/", CONTENT, "/etc/files");
+  SetUp(STANDARD_PREFIX_MATCH, "/content/", SERVE_CONTENT, "/etc/files");
   match_success("/content/audio.mp3", STANDARD_PREFIX_MATCH_PRIORITY, 9);
 }
 
 TEST_F(ServletTest, PrefixMatchFailure) {
-  SetUp(STANDARD_PREFIX_MATCH, "/static/", CONTENT, "/etc/files/");
+  SetUp(STANDARD_PREFIX_MATCH, "/static/", SERVE_CONTENT, "/etc/files/");
   match_failure("/static2/doc.pdf");
 }
 
 // regex match tests
 TEST_F(ServletTest, RegexCaseMatching) {
-  SetUp(REGEX_CASE_INSENSITIVE_MATCH, "\\.(png|pdf|jpeg|mp3)", CONTENT, "/etc/files");
+  SetUp(REGEX_CASE_INSENSITIVE_MATCH, "\\.(png|pdf|jpeg|mp3)", SERVE_CONTENT, "/etc/files");
   match_success("/static/img.PNG", REGEX_MATCH_PRIORITY, 1);
   match_success("/static/audio.Mp3", REGEX_MATCH_PRIORITY, 1);
   TearDown();
-  SetUp(REGEX_CASE_SENSITIVE_MATCH, "\\.(png|pdf|jpeg|mp3)", CONTENT, "/etc/files");
+  SetUp(REGEX_CASE_SENSITIVE_MATCH, "\\.(png|pdf|jpeg|mp3)", SERVE_CONTENT, "/etc/files");
   match_failure("/static/img.PNG");
 }
 
 TEST_F(ServletTest, RegexNoCaseMatching) {
-  SetUp(REGEX_CASE_INSENSITIVE_MATCH, "^/static[0-9]/", CONTENT, "/etc/files");
+  SetUp(REGEX_CASE_INSENSITIVE_MATCH, "^/static[0-9]/", SERVE_CONTENT, "/etc/files");
   match_success("/static2/img.png", REGEX_MATCH_PRIORITY, 1);
   match_failure("/static/img.png");
   TearDown();
-  SetUp(REGEX_CASE_SENSITIVE_MATCH, "^/static[0-9]/", CONTENT, "/etc/files");
+  SetUp(REGEX_CASE_SENSITIVE_MATCH, "^/static[0-9]/", SERVE_CONTENT, "/etc/files");
   match_success("/static2/img.png", REGEX_MATCH_PRIORITY, 1);
   match_failure("/Static2/img.png");
 }

@@ -107,12 +107,12 @@ class NginxConfigTest : public testing :: Test {
       EXPECT_EQ(full_parsed_config.findPort(), -1);
     }
     void find_paths_success(int expected_servlets, std::vector<std::string> expected_behaviors, std::vector<std::string> expected_roots){
-      std::vector<std::unique_ptr<Servlet>> servlets = full_parsed_config.findPaths();
+      std::vector<std::shared_ptr<Servlet>> servlets = full_parsed_config.findPaths();
       std::vector<std::string> behaviors;
       std::vector<std::string> roots;
-      for(const std::unique_ptr<Servlet>& servlet : servlets){
-        behaviors.push_back(servlet.get()->servletBehavior());
-        roots.push_back(servlet.get()->servletRoot());
+      for(const std::shared_ptr<Servlet>& servlet : servlets){
+        behaviors.push_back(servlet->servletBehavior());
+        roots.push_back(servlet->servletRoot());
       }
       EXPECT_EQ(servlets.size(), expected_servlets);
       for(int i = 0; i < servlets.size(); i++){
@@ -121,7 +121,7 @@ class NginxConfigTest : public testing :: Test {
       }
     }
     void find_paths_failure(){
-      std::vector<std::unique_ptr<Servlet>> servlets = full_parsed_config.findPaths();
+      std::vector<std::shared_ptr<Servlet>> servlets = full_parsed_config.findPaths();
       EXPECT_EQ(servlets.size(), 0);
     }
 
@@ -195,13 +195,14 @@ TEST_F(NginxConfigTest, NoPaths){
 // should succeed at extracting single servlet in a config which specifies only 1 path
 TEST_F(NginxConfigTest, OnePath){
   SetUp("one_path_config");
-  find_paths_success(1, {"echo"}, {""});
+  find_paths_success(1, {ECHO_REQUEST}, {""});
 }
 
 // should succeed at extracting 2 servlets from config which specifies 2 paths
 TEST_F(NginxConfigTest, TwoPaths){
   SetUp("two_paths_config");
-  find_paths_success(2, {"echo","content"}, {"","/etc/files"});
+  find_port_success(80);
+  find_paths_success(2, {ECHO_REQUEST, SERVE_CONTENT}, {"","/etc/files"});
 }
 
 // should fail if any match modifier is invalid
@@ -232,5 +233,5 @@ TEST_F(NginxConfigTest, UnrecognizedBehavior){
 // default behavior should be content
 TEST_F(NginxConfigTest, DefaultBehavior){
   SetUp("default_behavior_config");
-  find_paths_success(1, {"content"}, {"/etc/files"});
+  find_paths_success(1, {SERVE_CONTENT}, {"/etc/files"});
 }

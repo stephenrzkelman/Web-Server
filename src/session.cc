@@ -2,10 +2,10 @@
 #include "echo_request_handler.h"
 #include <boost/bind/bind.hpp>
 
-session::session(boost::asio::io_service& io_service) : socket_(io_service) {
-    // TODO: reqHandler will be assigned echo or static handler based on url
-    reqHandler = std::make_unique<echo_request_handler>();
-}
+session::session(boost::asio::io_service& io_service, std::shared_ptr<RequestManager> request_manager) 
+: socket_(io_service),
+request_manager_(request_manager)
+{}
 
 tcp::socket& session::socket() {
     return socket_;
@@ -29,16 +29,24 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
         partialRequest += boost::beast::buffers_to_string(boost::asio::buffer(data_, bytes_transferred));
         //See if the data fits in the buffer, if large, try to read in more data
         if (bytes_transferred == max_length) {
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
-                boost::bind(&session::handle_read, this,
-                boost::asio::placeholders::error,
-                boost::asio::placeholders::bytes_transferred));
-                return;
+            socket_.async_read_some(
+                boost::asio::buffer(data_, max_length),
+                boost::bind(
+                    &session::handle_read, this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred
+                )
+            );
+            return;
         }
-        boost::asio::async_write(socket_,
-            reqHandler->handleRequest(boost::asio::buffer(partialRequest)),
-            boost::bind(&session::handle_write, this,
-            boost::asio::placeholders::error));
+        boost::asio::async_write(
+            socket_,
+            boost::asio::buffer(request_manager_->manageRequest(boost::asio::buffer(partialRequest))),
+            boost::bind(
+                &session::handle_write, this,
+                boost::asio::placeholders::error
+            )
+        );
         partialRequest = "";
     } else {
         delete this;

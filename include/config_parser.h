@@ -78,7 +78,7 @@ class NginxConfig {
   // iterates through contexts, starting from this->contextName, to end up in main->http->server,
   // then searches for valid "location" blocks and extracts match function and desired behavior from it
   // return vector of items, each containing this matching functionality, as well as the desired behavior
-  std::vector<std::unique_ptr<Servlet>> findPaths();
+  std::vector<std::shared_ptr<Servlet>> findPaths();
   // to be called from main->http->server->location context,
   // searches for valid "behavior" directive and extracts specified behavior from it
   // return the specified behavior

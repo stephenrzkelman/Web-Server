@@ -379,7 +379,7 @@ std::string NginxConfig::findServletBehavior(){
     std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(BEHAVIOR, 1);
     if (possible_directives.size() == 0) {
       // Default behavior is CONTENT
-      return CONTENT;
+      return SERVE_CONTENT;
     }
     else if(possible_directives.size() > 1){
       return "";
@@ -414,21 +414,21 @@ std::string NginxConfig::findServletRoot(){
   return "";
 }
 
-std::vector<std::unique_ptr<Servlet>> NginxConfig::findPaths(){
+std::vector<std::shared_ptr<Servlet>> NginxConfig::findPaths(){
   NginxConfig* curConfig = this;
   std::vector<NginxConfig*> possible_contexts;
-  std::vector<std::unique_ptr<Servlet>> servlets;
+  std::vector<std::shared_ptr<Servlet>> servlets;
   if(curConfig->contextName == MAIN) {
     possible_contexts = curConfig->findChildBlocks(HTTP, 0);
     if(possible_contexts.size() != 1){
-      return std::vector<std::unique_ptr<Servlet>>();
+      return std::vector<std::shared_ptr<Servlet>>();
     }
     curConfig = possible_contexts[0];
   }
   if(curConfig->contextName == HTTP){
     possible_contexts = curConfig->findChildBlocks(SERVER, 0);
     if (possible_contexts.size() != 1) {
-      return std::vector<std::unique_ptr<Servlet>>();
+      return std::vector<std::shared_ptr<Servlet>>();
     }
     curConfig = possible_contexts[0];
   }
@@ -437,15 +437,15 @@ std::vector<std::unique_ptr<Servlet>> NginxConfig::findPaths(){
     for (const auto& directive : modified_location_directives){
       if (MATCH_TYPES.find(directive->tokens_[1]) == MATCH_TYPES.end()){
         // return empty array if invalid match modifier string provided, to indicate error
-        return std::vector<std::unique_ptr<Servlet>>();
+        return std::vector<std::shared_ptr<Servlet>>();
       }
       std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
       std::string servlet_root = directive->child_block_.get()->findServletRoot();
-      if ((servlet_root == "" && servlet_behavior != ECHO) || servlet_behavior == ""){
-        return std::vector<std::unique_ptr<Servlet>>();
+      if ((servlet_root == "" && servlet_behavior != ECHO_REQUEST) || servlet_behavior == ""){
+        return std::vector<std::shared_ptr<Servlet>>();
       }
       servlets.push_back(
-        std::make_unique<Servlet>(Servlet(
+        std::make_shared<Servlet>(Servlet(
           directive->tokens_[1],
           directive->tokens_[2],
           servlet_behavior,
@@ -456,11 +456,11 @@ std::vector<std::unique_ptr<Servlet>> NginxConfig::findPaths(){
     for (const auto& directive : prefix_location_directives){
       std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
       std::string servlet_root = directive->child_block_.get()->findServletRoot();
-      if ((servlet_root == "" && servlet_behavior != ECHO) || servlet_behavior == ""){
-        return std::vector<std::unique_ptr<Servlet>>();
+      if ((servlet_root == "" && servlet_behavior != ECHO_REQUEST) || servlet_behavior == ""){
+        return std::vector<std::shared_ptr<Servlet>>();
       }
       servlets.push_back(
-        std::make_unique<Servlet>(Servlet(
+        std::make_shared<Servlet>(Servlet(
           STANDARD_PREFIX_MATCH,
           directive->tokens_[1],
           servlet_behavior,

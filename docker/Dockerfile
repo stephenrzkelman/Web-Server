@@ -17,7 +17,7 @@ RUN ctest --output-on_failure
 FROM ubuntu:jammy as deploy
 
 COPY --from=builder /usr/src/project/build/bin/server .
-COPY --from=builder /usr/src/project/docker_config .
+COPY --from=builder /usr/src/project/server_config .
 
 EXPOSE 8080
 
@@ -27,4 +27,4 @@ ENTRYPOINT ["./server"]
 
 # Use CMD to specify arguments to ENTRYPOINT
 # TODO(!): Update with real server args
-CMD ["docker_config"]
+CMD ["server_config"]

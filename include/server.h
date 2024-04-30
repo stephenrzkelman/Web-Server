@@ -4,6 +4,15 @@
 #include <boost/asio.hpp>
 #include "session.h"
 
+struct ServerConfig {
+    RequestManager request_manager;
+    unsigned short port;
+    ServerConfig(
+        RequestManager request_manager,
+        unsigned short port
+    );
+};
+
 class server {
 public:
     // Constructor for the server class.
@@ -12,7 +21,7 @@ public:
     // Parameters:
     //   io_service: Reference to the Boost.Asio IO service to be used for asynchronous operations.
     //   port: The port number on which the server will listen for incoming connections.
-    server(boost::asio::io_service& io_service, short port);
+    server(boost::asio::io_service& io_service, ServerConfig& config_data);
 
 private:
     // Private member function to start accepting connections.
@@ -31,6 +40,7 @@ private:
     // Member variables
     boost::asio::io_service& io_service_;
     boost::asio::ip::tcp::acceptor acceptor_;
+    std::shared_ptr<RequestManager> request_manager_;
 };
 
 #endif // SERVER_H
