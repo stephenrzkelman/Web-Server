@@ -1,5 +1,5 @@
 #include "request_manager.h"
-
+#include <boost/log/trivial.hpp>
 #include <string>
 
 RequestManager::RequestManager(
