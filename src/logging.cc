@@ -23,14 +23,14 @@ void init_logging() {
 
     // Setup the common formatter for all sinks
     logging::formatter fmt = expr::stream
-        << '[' << std::setw(6) << std::setfill('0') << line_id << std::setfill(' ') << ']'
+        << "[" << std::setw(6) << std::setfill('0') << line_id << std::setfill(' ') << "] "
         << expr::if_(expr::has_attr(tag_attr))
            [
                expr::stream << "[" << tag_attr << "] "
            ]
-        << '[' << logging::expressions::attr<logging::attributes::current_thread_id::value_type>("ThreadID") << ']'
-        << '[' << expr::attr<boost::posix_time::ptime>("TimeStamp") << ']'
-        << '[' << logging::trivial::severity << ']'
+        << "[" << logging::expressions::attr<logging::attributes::current_thread_id::value_type>("ThreadID") << "] "
+        << "[" << expr::attr<boost::posix_time::ptime>("TimeStamp") << "] "
+        << "[" << logging::trivial::severity << "] " 
         << expr::smessage;
 
     // Setup file logging
@@ -46,13 +46,16 @@ void init_logging() {
     // Setup console logging 
     logging::add_console_log(
         std::cout, 
-        keywords::auto_flush = true
+        keywords::auto_flush = true,
+        keywords::format = fmt
     );
 
-    // Only logs with a severity greater than or equal to info will show
+    // Only logs with a severity greater than or equal to info will show. Severity levels are as follows in order of severity: trace, debug, info, warning, error, fatal
     logging::core::get()->set_filter
     (
         logging::trivial::severity >= logging::trivial::info
     );
+
+    // Add attributes to the logs
     logging::add_common_attributes();
 }
