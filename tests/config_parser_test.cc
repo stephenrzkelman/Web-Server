@@ -21,25 +21,25 @@ class NginxConfigParserTest : public testing::Test {
 // the basic given config should parse without failure
 TEST_F(NginxConfigParserTest, SimpleConfig) {
   parse_success(
-    "example_config",
+    "configs/example_config",
     "foo \"bar\";\nserver {\n  listen 80;\n  server_name foo.com;\n  root /home/ubuntu/sites/foo/;\n}\n"
   );
 }
 
 // Parsing a config with an unclosed brace should fail
 TEST_F(NginxConfigParserTest, OpenBraceConfig) {
-  parse_fail("open_brace_config");
+  parse_fail("configs/open_brace_config");
 }
 
 // Parsing a config with a dangling close-brace should fail
 TEST_F(NginxConfigParserTest, CloseBraceConfig) {
-  parse_fail("close_brace_config");
+  parse_fail("configs/close_brace_config");
 }
 
 // Quoted strings should allow escape-characters
 TEST_F(NginxConfigParserTest, QuotesConfig) {
   parse_success(
-    "quotes_config",
+    "configs/quotes_config",
     "quote1 \'\';\nquote2 \"\";\nescape1 \'\\\'\';\nescape2 \"\\\"\";\nend1 \'hello\' \'world\';\nend2 \"welcome\" \"home\";\n"
   );
 }
@@ -47,45 +47,45 @@ TEST_F(NginxConfigParserTest, QuotesConfig) {
 // Nested braces should pass
 TEST_F(NginxConfigParserTest, NestedBraces) {
   parse_success(
-    "docker_config",
+    "configs/docker_config",
     "http {\n  server {\n    listen 80;\n  }\n}\n"
   );
 }
 
 // Single-quoted strings should be followed by a space or a semicolon
 TEST_F(NginxConfigParserTest, BadSingleQuoteFollow) {
-  parse_fail("bad_single_quote_follow");
+  parse_fail("configs/bad_single_quote_follow");
 }
 
 // Double-quoted strings should be followed by a space or a semicolon
 TEST_F(NginxConfigParserTest, BadDoubleQuoteFollow) {
-  parse_fail("bad_double_quote_follow");
+  parse_fail("configs/bad_double_quote_follow");
 }
 
 // \r should be treated as a whitespace, delimiting the end of a token
 TEST_F(NginxConfigParserTest, CarriageReturn) {
-  parse_fail("crlf_config");
+  parse_fail("configs/crlf_config");
 }
 
 // parse should fail on nonexistent config file
 TEST_F(NginxConfigParserTest, NonexistentConfig) {
-  parse_fail("nonexistent_config");
+  parse_fail("configs/nonexistent_config");
 }
 
 // only "normal-type" tokens should be able to label a block
 TEST_F(NginxConfigParserTest, BadBlockLabel) {
-  parse_fail("semicolon_before_block_config");
+  parse_fail("configs/semicolon_before_block_config");
 }
 
 // semicolons should only end a line consisting of "normal-type" tokens
 TEST_F(NginxConfigParserTest, BadStatementEnd) {
-  parse_fail("semicolon_after_block_config");
+  parse_fail("configs/semicolon_after_block_config");
 }
 
 // lines must end with semicolon
 TEST_F(NginxConfigParserTest, MissingSemicolon) {
-  parse_fail("unterminated_nested_line_config");
-  parse_fail("unterminated_outer_line_config");
+  parse_fail("configs/unterminated_nested_line_config");
+  parse_fail("configs/unterminated_outer_line_config");
 }
 
 class NginxConfigTest : public testing :: Test {
@@ -132,106 +132,106 @@ class NginxConfigTest : public testing :: Test {
 // the minimal config specifying only a port inside http{server{...}} should be valid
 // the minimal config specifying port 80 inside http{server{...}} should have 80 extracted as the desired port
 TEST_F(NginxConfigTest, DockerConfig) {
-  SetUp("docker_config");
+  SetUp("configs/docker_config");
   validation_success();
   find_port_success(80);
 }
 
 // the findPort step should fail for configs with no port or multiple ports specified under the 'listen' directive
 TEST_F(NginxConfigTest, IncorrectListenArgCount){
-  SetUp("too_many_ports_config");
+  SetUp("configs/too_many_ports_config");
   find_port_failure();
-  SetUp("no_ports_config");
+  SetUp("configs/no_ports_config");
   find_port_failure();
 }
 
 // configs with unrecognized directives should fail validation
 TEST_F(NginxConfigTest, UnrecognizedDirective){
-  SetUp("example_config");
+  SetUp("configs/example_config");
   validation_failure();
-  SetUp("port_in_main_config");
+  SetUp("configs/port_in_main_config");
   validation_failure();
-  SetUp("port_in_http_config");
+  SetUp("configs/port_in_http_config");
   validation_failure();
 }
 
 // configs with non-unique "listen" directives should fail the findPort step
 TEST_F(NginxConfigTest, NonUniqueDirective){
-  SetUp("non_unique_listen_config");
+  SetUp("configs/non_unique_listen_config");
   find_port_failure();
 }
 
 // if subcontext name erroneously used as directive label, validation should fail
 TEST_F(NginxConfigTest, ContextLabeledButNotPresent){
-  SetUp("bad_server_line_config");
+  SetUp("configs/bad_server_line_config");
   validation_failure();
 }
 
 // if port number is not a positive integer in the range 0-65535, findPort should "fail"
 TEST_F(NginxConfigTest, BadPortProvided){
-  SetUp("alphabetical_port_config");
+  SetUp("configs/alphabetical_port_config");
   find_port_failure();
-  SetUp("negative_port_config");
+  SetUp("configs/negative_port_config");
   find_port_failure();
-  SetUp("decimal_port_config");
+  SetUp("configs/decimal_port_config");
   find_port_failure();
-  SetUp("port_too_large_config");
+  SetUp("configs/port_too_large_config");
   find_port_failure();
 }
 
 // if a context gets arguments but doesn't require any, it should be flagged
 TEST_F(NginxConfigTest, OverlabeledHTTPConfig){
-  SetUp("over_labeled_config");
+  SetUp("configs/over_labeled_config");
   find_port_failure();
   find_paths_failure();
 }
 
 // should fail to find paths in a config which doesn't specify any
 TEST_F(NginxConfigTest, NoPaths){
-  SetUp("docker_config");
+  SetUp("configs/docker_config");
   find_paths_failure();
 }
 
 // should succeed at extracting single servlet in a config which specifies only 1 path
 TEST_F(NginxConfigTest, OnePath){
-  SetUp("one_path_config");
+  SetUp("configs/one_path_config");
   find_paths_success(1, {ECHO_REQUEST}, {""});
 }
 
 // should succeed at extracting 2 servlets from config which specifies 2 paths
 TEST_F(NginxConfigTest, TwoPaths){
-  SetUp("two_paths_config");
+  SetUp("configs/two_paths_config");
   find_port_success(80);
   find_paths_success(2, {ECHO_REQUEST, SERVE_CONTENT}, {"","/etc/files"});
 }
 
 // should fail if any match modifier is invalid
 TEST_F(NginxConfigTest, InvalidMatchModifier){
-  SetUp("invalid_match_modifier_config");
+  SetUp("configs/invalid_match_modifier_config");
   find_paths_failure();
 }
 
 // should fail if more than one server block is provided
 TEST_F(NginxConfigTest, MultipleServerBlocks){
-  SetUp("multiple_server_blocks_config");
+  SetUp("configs/multiple_server_blocks_config");
   find_port_failure();
   find_paths_failure();
 }
 
 // should fail if multiple behaviors are specified
 TEST_F(NginxConfigTest, AmbiguousBehavior){
-  SetUp("ambiguous_behavior_config");
+  SetUp("configs/ambiguous_behavior_config");
   find_paths_failure();
 }
 
 // should fail if unrecognized behavior is specified
 TEST_F(NginxConfigTest, UnrecognizedBehavior){
-  SetUp("undefined_behavior_config");
+  SetUp("configs/undefined_behavior_config");
   find_paths_failure();
 }
 
 // default behavior should be content
 TEST_F(NginxConfigTest, DefaultBehavior){
-  SetUp("default_behavior_config");
+  SetUp("configs/default_behavior_config");
   find_paths_success(1, {SERVE_CONTENT}, {"/etc/files"});
 }

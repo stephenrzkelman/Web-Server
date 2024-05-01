@@ -72,11 +72,27 @@ add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
 add_executable(servlet_test tests/servlet_test.cc)
 target_link_libraries(servlet_test servlet_lib gtest_main)
+add_executable(manager_test tests/request_manager_test.cc)
+target_link_libraries(
+    manager_test 
+    manager_lib 
+    config_parser_lib
+    error_handler_lib
+    content_handler_lib
+    echo_handler_lib
+    handler_lib
+    file_reader_lib 
+    gtest_main
+)
+add_executable(content_handler_test tests/content_handler_test.cc)
+target_link_libraries(content_handler_test content_handler_lib gtest_main)
 
 # Update with test binary
 gtest_discover_tests(config_parser_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(echo_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(servlet_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(manager_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(content_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 
 # Add integration test
@@ -95,8 +111,12 @@ generate_coverage_report(
         echo_handler_lib 
         error_handler_lib
         servlet_lib 
+        file_reader_lib
+        manager_lib        
     TESTS 
         config_parser_test 
         echo_handler_test 
         servlet_test
+        manager_test
+        content_handler_test
 )
