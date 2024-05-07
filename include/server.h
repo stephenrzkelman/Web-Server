@@ -22,12 +22,12 @@ public:
     //   io_service: Reference to the Boost.Asio IO service to be used for asynchronous operations.
     //   port: The port number on which the server will listen for incoming connections.
     server(boost::asio::io_service& io_service, ServerConfig& config_data);
-
-private:
-    // Private member function to start accepting connections.
+    
+    // Public member function to start accepting connections.
     // Creates a new session object for each incoming connection and initiates an asynchronous accept operation.
     void start_accept();
 
+private:
     // Private member function to handle the completion of an asynchronous accept operation.
     // This function is called when an incoming connection is accepted.
     // If no error occurs, it starts the session by calling 'start()' on the session object.

@@ -19,7 +19,6 @@ acceptor_(io_service, tcp::endpoint(tcp::v4(), config_data.port))
 {
     request_manager_.reset(&config_data.request_manager);
     BOOST_LOG_TRIVIAL(info) << "Server starting up";
-    start_accept();
 }
 
 void server::start_accept() {

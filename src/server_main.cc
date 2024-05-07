@@ -81,6 +81,7 @@ int main(int argc, char* argv[])
     ServerConfig config_data(request_manager, port_number);
 
     server s(io_service, config_data);
+    s.start_accept();
 
     io_service.run();
   }
