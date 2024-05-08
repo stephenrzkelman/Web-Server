@@ -2,7 +2,8 @@ import subprocess
 from typing import List
 import argparse
 import sys
-
+import signal
+import time
 
 class IntegrationTest(): 
     def __init__(self, config, server) -> None:
@@ -22,6 +23,7 @@ class IntegrationTest():
         # TODO: create some way to generate a config file automatically instead of statically encoding one? potentailly create an overloaded start_server() function
         # TODO: error handle server start. if the port is already in use, try running on a different port or kill? can also terminate script early
         self.server = subprocess.Popen([server, config])
+        time.sleep(0.1)
     
     def end_server(self) -> None: 
         '''
@@ -126,9 +128,15 @@ class IntegrationTest():
         response = self.netcat_server(args, content_to_send)
         return self.__test_case_helper(name, expected, response)
 
+    def signal_handler(self, sig, frame):
+        print('Integration tests interrupted, received SIGINT (ctrl+c)')
+        self.end_server()
+        sys.exit(0)
+
 def main(config = str, server = str):  
-    # Init Integration Test
+    # Init Integration Test and Signal Handler for ctrl+c
     tester = IntegrationTest(config, server)
+    signal.signal(signal.SIGINT, tester.signal_handler)
 
     # A GET request sent through curl should receive a response
     tester.test_case_curl(name = "test_curl_basic",
