@@ -1,5 +1,3 @@
-http server{
-    server{
+server listen{
         listen 80;
-    }
 }

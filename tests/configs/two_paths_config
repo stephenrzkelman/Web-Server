@@ -1,12 +1,10 @@
-http{
-    server{
-        listen 80;
-        location = /echo {
-            behavior echo-request;
-        }
-        location ~ /static {
-            behavior serve-content;
-            root /etc/files;
-        }
+server{
+    listen 80;
+    location = /echo {
+        behavior echo-request;
+    }
+    location ~ /static {
+        behavior serve-content;
+        root /etc/files;
     }
 }

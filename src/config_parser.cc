@@ -335,13 +335,6 @@ int NginxConfig::findPort(){
   NginxConfig* curConfig = this;
   std::vector<NginxConfig*> possible_contexts;
   if(curConfig->contextName == MAIN) {
-    possible_contexts = curConfig->findChildBlocks(HTTP, 0);
-    if(possible_contexts.size() != 1){
-      return -1;
-    }
-    curConfig = possible_contexts[0];
-  }
-  if(curConfig->contextName == HTTP){
     possible_contexts = curConfig->findChildBlocks(SERVER, 0);
     if (possible_contexts.size() != 1) {
       return -1;
@@ -378,8 +371,8 @@ std::string NginxConfig::findServletBehavior(){
   if(curConfig->contextName == LOCATION){
     std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(BEHAVIOR, 1);
     if (possible_directives.size() == 0) {
-      // Default behavior is CONTENT
-      return SERVE_CONTENT;
+      // No default behavior
+      return "";
     }
     else if(possible_directives.size() > 1){
       return "";
@@ -398,12 +391,15 @@ std::string NginxConfig::findServletBehavior(){
   return "";
 }
 
-std::string NginxConfig::findServletRoot(){
+std::optional<std::string> NginxConfig::findServletRoot(){
   NginxConfig* curConfig = this;
   if(curConfig->contextName == LOCATION){
     std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(ROOT, 1);
-    if(possible_directives.size() != 1){
+    if(possible_directives.size() == 0){
       return "";
+    }
+    else if(possible_directives.size() > 1){
+      return {};
     }
     else { 
       NginxConfigStatement* root_directive = possible_directives[0];
@@ -411,7 +407,7 @@ std::string NginxConfig::findServletRoot(){
       return root;
     }
   }
-  return "";
+  return {};
 }
 
 std::vector<std::shared_ptr<Servlet>> NginxConfig::findPaths(){
@@ -419,13 +415,6 @@ std::vector<std::shared_ptr<Servlet>> NginxConfig::findPaths(){
   std::vector<NginxConfig*> possible_contexts;
   std::vector<std::shared_ptr<Servlet>> servlets;
   if(curConfig->contextName == MAIN) {
-    possible_contexts = curConfig->findChildBlocks(HTTP, 0);
-    if(possible_contexts.size() != 1){
-      return std::vector<std::shared_ptr<Servlet>>();
-    }
-    curConfig = possible_contexts[0];
-  }
-  if(curConfig->contextName == HTTP){
     possible_contexts = curConfig->findChildBlocks(SERVER, 0);
     if (possible_contexts.size() != 1) {
       return std::vector<std::shared_ptr<Servlet>>();
@@ -440,8 +429,14 @@ std::vector<std::shared_ptr<Servlet>> NginxConfig::findPaths(){
         return std::vector<std::shared_ptr<Servlet>>();
       }
       std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
-      std::string servlet_root = directive->child_block_.get()->findServletRoot();
-      if ((servlet_root == "" && servlet_behavior != ECHO_REQUEST) || servlet_behavior == ""){
+      std::optional<std::string> servlet_root_optional = directive->child_block_.get()->findServletRoot();
+      if (servlet_root_optional == std::nullopt || 
+          servlet_behavior == "") {
+        return std::vector<std::shared_ptr<Servlet>>();
+      }
+      std::string servlet_root = servlet_root_optional.value();
+      if ((servlet_behavior != ECHO_REQUEST && servlet_root == "") || 
+          (servlet_behavior == ECHO_REQUEST && servlet_root != "")){
         return std::vector<std::shared_ptr<Servlet>>();
       }
       servlets.push_back(
@@ -455,8 +450,14 @@ std::vector<std::shared_ptr<Servlet>> NginxConfig::findPaths(){
     std::vector<NginxConfigStatement*> prefix_location_directives = curConfig->findDirectives(LOCATION, 1);
     for (const auto& directive : prefix_location_directives){
       std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
-      std::string servlet_root = directive->child_block_.get()->findServletRoot();
-      if ((servlet_root == "" && servlet_behavior != ECHO_REQUEST) || servlet_behavior == ""){
+      std::optional<std::string> servlet_root_optional = directive->child_block_.get()->findServletRoot();
+      if (servlet_root_optional == std::nullopt || 
+          servlet_behavior == "") {
+        return std::vector<std::shared_ptr<Servlet>>();
+      }
+      std::string servlet_root = servlet_root_optional.value();
+      if ((servlet_behavior != ECHO_REQUEST && servlet_root == "") || 
+          (servlet_behavior == ECHO_REQUEST && servlet_root != "")){
         return std::vector<std::shared_ptr<Servlet>>();
       }
       servlets.push_back(

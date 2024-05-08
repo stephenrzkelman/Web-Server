@@ -1,5 +1,3 @@
-http {
-  server {
-    listen 65536;
-  }
+server {
+  listen 65536;
 }

@@ -1,7 +1,5 @@
-http{
-    server{
-        location = /error/ {
-            behavior 404;
-        }
+server{
+    location = /error/ {
+        behavior 404;
     }
 }

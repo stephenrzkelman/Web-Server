@@ -48,7 +48,7 @@ TEST_F(NginxConfigParserTest, QuotesConfig) {
 TEST_F(NginxConfigParserTest, NestedBraces) {
   parse_success(
     "configs/docker_config",
-    "http {\n  server {\n    listen 80;\n  }\n}\n"
+    "server {\n  listen 80;\n  location = /echo {\n    behavior echo-request;\n  }\n}\n"
   );
 }
 
@@ -151,8 +151,6 @@ TEST_F(NginxConfigTest, UnrecognizedDirective){
   validation_failure();
   SetUp("configs/port_in_main_config");
   validation_failure();
-  SetUp("configs/port_in_http_config");
-  validation_failure();
 }
 
 // configs with non-unique "listen" directives should fail the findPort step
@@ -188,7 +186,7 @@ TEST_F(NginxConfigTest, OverlabeledHTTPConfig){
 
 // should fail to find paths in a config which doesn't specify any
 TEST_F(NginxConfigTest, NoPaths){
-  SetUp("configs/docker_config");
+  SetUp("configs/no_paths_config");
   find_paths_failure();
 }
 
@@ -230,8 +228,18 @@ TEST_F(NginxConfigTest, UnrecognizedBehavior){
   find_paths_failure();
 }
 
-// default behavior should be content
+// no default behavior should be specified
 TEST_F(NginxConfigTest, DefaultBehavior){
   SetUp("configs/default_behavior_config");
-  find_paths_success(1, {SERVE_CONTENT}, {"/etc/files"});
+  find_paths_failure();
+}
+
+// any badly configured locations should cause find paths to fail
+TEST_F(NginxConfigTest, BadLocations){
+  SetUp("configs/prefix_echo_with_root_config");
+  find_paths_failure();
+  SetUp("configs/echo_with_root_config");
+  find_paths_failure();
+  SetUp("too_many_roots_config");
+  find_paths_failure();
 }

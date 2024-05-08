@@ -28,7 +28,7 @@ enum MATCH_TYPE_PRIORITY {
   REGEX_MATCH_PRIORITY = 1, 
   STANDARD_PREFIX_MATCH_PRIORITY = 0
 };
-// servlet behavior options. As with Nginx, servint static content is default
+// servlet behavior options
 const std::string SERVE_CONTENT = "serve-content";
 const std::string ECHO_REQUEST = "echo-request";
 const std::unordered_set<std::string> VALID_BEHAVIORS = {

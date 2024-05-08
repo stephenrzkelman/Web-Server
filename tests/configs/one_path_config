@@ -1,7 +1,5 @@
-http{
-    server{
-        location /echo {
-            behavior echo-request;
-        }
+server{
+    location /echo {
+        behavior echo-request;
     }
 }

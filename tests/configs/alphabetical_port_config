@@ -1,5 +1,3 @@
-http {
-  server {
-    listen eighty;
-  }
+server {
+  listen eighty;
 }

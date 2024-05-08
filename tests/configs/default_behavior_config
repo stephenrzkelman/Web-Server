@@ -1,7 +1,5 @@
-http{
-    server{
-        location /static/{
-            root /etc/files;
-        }
+server{
+    location /static/{
+        root /etc/files;
     }
 }

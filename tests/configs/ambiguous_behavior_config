@@ -1,8 +1,6 @@
-http{
-    server{
-        location /path/ {
-            behavior echo;
-            behavior content;
-        }
+server{
+    location /path/ {
+        behavior echo;
+        behavior content;
     }
 }
