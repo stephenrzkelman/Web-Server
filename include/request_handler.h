@@ -46,7 +46,7 @@ class request_handler {
 
 public:
     //Pure virtual function to generate a response to a given request
-    virtual std::vector<boost::asio::mutable_buffer> handleRequest(
+    virtual std::string handleRequest(
         request_data request
     ) = 0;
     

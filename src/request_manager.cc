@@ -19,24 +19,21 @@ std::string RequestManager::manageRequest(boost::asio::mutable_buffer request){
     if(matched_servlet == nullptr){
       request_data data;
       data.suggested_response_code = NOT_FOUND_STATUS;
-      error_handler_->handleRequest(data);
-      return error_handler_->getLastResponse();
+      return error_handler_->handleRequest(data);
     }
     else{
       std::string servlet_behavior = matched_servlet->servletBehavior();
       if(request_handlers_.find(servlet_behavior) == request_handlers_.end()){
         request_data data;
         data.suggested_response_code = INTERNAL_SERVER_ERROR_STATUS;
-        error_handler_->handleRequest(data);
-        return error_handler_->getLastResponse();
+        return error_handler_->handleRequest(data);
       }
       else{
         request_data data;
         data.raw_request = request;
         data.parsed_request = &parsed_request;
         data.root_directory = matched_servlet->servletRoot();
-        request_handlers_[servlet_behavior]->handleRequest(data);
-        return request_handlers_[servlet_behavior]->getLastResponse();
+        return request_handlers_[servlet_behavior]->handleRequest(data);
       }
     }
   }
@@ -44,8 +41,7 @@ std::string RequestManager::manageRequest(boost::asio::mutable_buffer request){
     request_data data;
     data.raw_request = request;
     data.suggested_response_code = BAD_REQUEST_STATUS;
-    request_handlers_[ECHO_REQUEST]->handleRequest(data);
-    return request_handlers_[ECHO_REQUEST]->getLastResponse();
+    return request_handlers_[ECHO_REQUEST]->handleRequest(data);
   }
 }
 

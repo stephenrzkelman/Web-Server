@@ -22,9 +22,7 @@ COPY --from=builder /usr/src/project/files /usr/src/projects/fortnite-gamers/fil
 EXPOSE 8080
 
 # Use ENTRYPOINT to specify the binary name
-# TODO(!): Update with real server name
 ENTRYPOINT ["./server"]
 
 # Use CMD to specify arguments to ENTRYPOINT
-# TODO(!): Update with real server args
 CMD ["server_config"]

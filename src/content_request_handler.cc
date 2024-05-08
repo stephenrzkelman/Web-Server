@@ -5,14 +5,13 @@
 content_request_handler::content_request_handler(FileReader& file_reader)
 :file_reader_(file_reader){}
 
-std::vector<boost::asio::mutable_buffer> content_request_handler::handleRequest(
+std::string content_request_handler::handleRequest(
   request_data request
 ) {
   BOOST_LOG_TRIVIAL(info) << "Handling static request";
   RESPONSE_CODE status_code;
   std::string content_type;
   uintmax_t content_length = 0;
-  std::vector<boost::asio::mutable_buffer> responseBuffer;
   std::string responseString;
   std::string target_file = request.root_directory + std::string(request.parsed_request->target());
   BOOST_LOG_TRIVIAL(info) << "File name requested: " << target_file;
@@ -44,10 +43,8 @@ std::vector<boost::asio::mutable_buffer> content_request_handler::handleRequest(
         break;
     }
   }
-  content_length += boost::asio::buffer_size(boost::asio::buffer(responseString));
+  content_length += responseString.size();
   lastResponseHeader = makeHeader(status_code, content_type, content_length);
-  responseBuffer.push_back(boost::asio::buffer(lastResponseHeader));
-  responseBuffer.push_back(boost::asio::buffer(responseString));
-  lastResponse = boost::beast::buffers_to_string(responseBuffer);
-  return responseBuffer;
+  lastResponse = lastResponseHeader + responseString;
+  return lastResponse;
 }

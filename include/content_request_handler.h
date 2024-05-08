@@ -10,7 +10,7 @@ class content_request_handler : public request_handler {
     public:
         content_request_handler(FileReader& file_reader);
 
-        std::vector<boost::asio::mutable_buffer> handleRequest(
+        std::string handleRequest(
             request_data request
         );
 

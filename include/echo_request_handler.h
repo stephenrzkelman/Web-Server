@@ -5,7 +5,7 @@
 
 class echo_request_handler : public request_handler {
     public:
-        std::vector<boost::asio::mutable_buffer> handleRequest(
+        std::string handleRequest(
             request_data request
         );
 };
