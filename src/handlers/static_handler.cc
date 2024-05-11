@@ -1,11 +1,11 @@
-#include "content_request_handler.h"
-#include <boost/log/trivial.hpp>
-#include <iostream>
+#include "handlers/static_handler.h"
+#include "file_reader.h"
 
-content_request_handler::content_request_handler(FileReader& file_reader)
-:file_reader_(file_reader){}
+StaticHandler::StaticHandler(std::unordered_map<std::string,std::string> args)
+:root_(args["root"]){}
 
-std::string content_request_handler::handleRequest(
+
+std::string StaticHandler::handleRequest(
   request_data request
 ) {
   BOOST_LOG_TRIVIAL(info) << "Handling static request";
@@ -13,10 +13,12 @@ std::string content_request_handler::handleRequest(
   std::string content_type;
   uintmax_t content_length = 0;
   std::string responseString;
-  std::string target_file = request.root_directory + std::string(request.parsed_request->target());
+  std::string target_file = root_ + std::string(request.relative_path); 
   BOOST_LOG_TRIVIAL(info) << "File name requested: " << target_file;
-  FILE_TYPE file_type = file_reader_.fileType(target_file);
-  bool successful_read = file_reader_.readFile(target_file,responseString);
+  std::ifstream file_handler;
+  FileReader file_reader = FileReader(file_handler);
+  FILE_TYPE file_type = file_reader.fileType(target_file);
+  bool successful_read = file_reader.readFile(target_file,responseString);
   if(file_type == NO_MATCHING_TYPE || !successful_read){
     BOOST_LOG_TRIVIAL(error) << "No acceptable matching file type found";
     status_code = NOT_FOUND_STATUS;

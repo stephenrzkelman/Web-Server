@@ -4,6 +4,9 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <unordered_map>
+#include <iostream>
+#include <boost/log/trivial.hpp>
+#include <unordered_set>
 
 const std::string HTTP_PREFIX = "HTTP/1.1 ";
 const std::string CONTENT_TYPE = "Content-Type: ";
@@ -37,12 +40,12 @@ typedef boost::beast::http::message<true, http_string_body, http_fields> http_me
 struct request_data {
     boost::asio::mutable_buffer raw_request;
     http_message* parsed_request;
-    std::string root_directory;
-    RESPONSE_CODE suggested_response_code;
+    std::string relative_path;
+    RESPONSE_CODE suggested_response_code; 
 };
 
 
-class request_handler {
+class RequestHandler {
 
 public:
     //Pure virtual function to generate a response to a given request
@@ -65,6 +68,7 @@ protected:
 
     //Private member to hold last generated response.
     std::string lastResponse;
+    
 };
 
 #endif // REQUEST_HANDLER_H

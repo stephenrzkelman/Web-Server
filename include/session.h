@@ -14,6 +14,7 @@ public:
     // Initializes a new session object with the given IO service for asynchronous operations.
     // Parameters:
     //   io_service: Reference to the Boost.Asio IO service to be used for asynchronous operations.
+    //   manager: shared pointer to request manager that was initialized in server
     session(boost::asio::io_service& io_service, std::shared_ptr<RequestManager> manager);
 
     // Member function to access the TCP socket associated with the session.

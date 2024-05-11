@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include <boost/asio.hpp>
 #include "server.h"
+#include "location_data.h"
 
 #include <string>
 
@@ -11,18 +12,13 @@ class ServerTest : public testing::Test {
 
 // Basic initialization of server and calling of start_accept method
 TEST_F(ServerTest, StartAndAccept) {
-    // Dummy request manager setup
-    std::shared_ptr<error_request_handler> error_handler;
-    std::unordered_map<std::string, std::shared_ptr<request_handler>> request_handlers;
-    std::vector<std::shared_ptr<Servlet>> servlets;
-    RequestManager request_manager = RequestManager(
-        request_handlers,
-        error_handler,
-        servlets
-    );
 
+    //Setup request manager
     boost::asio::io_service io_service;
-    ServerConfig config_data(request_manager, 8080);
-    server s(io_service, config_data);
+    std::unordered_map<std::string, LocationData> locations;
+    RequestManager request_manager = RequestManager(locations);
+
+    //Setup server
+    server s(io_service, request_manager, 8080);
     s.start_accept();
 }

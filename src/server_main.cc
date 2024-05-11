@@ -14,11 +14,8 @@
 #include "config_parser.h"
 #include "session.h"
 #include "server.h"
-#include "request_handler.h"
-#include "echo_request_handler.h"
-#include "content_request_handler.h"
-#include "error_request_handler.h"
 #include "request_manager.h"
+#include "handlers/handler_registration.h"
 #include <boost/log/trivial.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 
@@ -42,8 +39,11 @@ int main(int argc, char* argv[])
       return 1;
     }
 
+    HandlerRegistration::register_handlers();
+
     boost::asio::io_service io_service;
 
+    //Parse config
     NginxConfigParser config_parser;
     NginxConfig config;
     bool successful_parse = config_parser.Parse(argv[1], &config);
@@ -59,30 +59,15 @@ int main(int argc, char* argv[])
       throw ("Port number not provided properly");
     }
 
-    std::shared_ptr<request_handler> echo_handler;
-    echo_handler.reset(new echo_request_handler());
-    std::shared_ptr<request_handler> content_handler;
-    std::ifstream file_handler;
-    FileReader file_reader = FileReader(file_handler);
-    content_handler.reset(new content_request_handler(file_reader));
-    std::shared_ptr<error_request_handler> error_handler;
-    error_handler.reset(new error_request_handler());
-    std::unordered_map<std::string, std::shared_ptr<request_handler>> request_handlers = {
-      {ECHO_REQUEST, echo_handler},
-      {SERVE_CONTENT, content_handler}
-    };
-    std::vector<std::shared_ptr<Servlet>> servlets = config.findPaths();
-    RequestManager request_manager = RequestManager(
-      request_handlers,
-      error_handler,
-      servlets
-    );
+    //Setup request manager
+    std::unordered_map<std::string, LocationData> locations = config.findPaths();
+    RequestManager request_manager = RequestManager(locations);
 
-    ServerConfig config_data(request_manager, port_number);
-
-    server s(io_service, config_data);
+    //Setup server
+    server s(io_service, request_manager, port_number);
     s.start_accept();
 
+    //Run io
     io_service.run();
   }
   catch (std::exception& e)

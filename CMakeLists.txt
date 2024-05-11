@@ -34,68 +34,72 @@ message(STATUS "Boost version: ${Boost_VERSION}")
 
 include_directories(include)
 
-# Add session, server, handler libraries
+# Add server, session and helper libraries
 add_library(session_lib src/session.cc)
 add_library(server_lib src/server.cc)
-add_library(handler_lib src/request_handler.cc)
-add_library(content_handler_lib src/content_request_handler.cc)
-add_library(echo_handler_lib src/echo_request_handler.cc)
-add_library(error_handler_lib src/error_request_handler.cc)
+add_library(handler_lib src/handlers/request_handler.cc)
 add_library(config_parser_lib src/config_parser.cc)
+add_library(location_data_lib src/location_data.cc)
+add_library(handler_registration_lib src/handlers/handler_registration.cc)
 target_compile_features(config_parser_lib PUBLIC cxx_std_17)
 add_library(logging_lib src/logging.cc)
 add_library(file_reader_lib src/file_reader.cc)
 add_library(signal_lib src/signal_handler.cc)
 
-# Add necessary links
-target_link_libraries(echo_handler_lib handler_lib)
-target_link_libraries(config_parser_lib Boost::log_setup Boost::log)
-add_library(servlet_lib src/servlet.cc)
+# Add handler libraries
+add_library(static_handler_lib src/handlers/static_handler.cc)
+add_library(echo_handler_lib src/handlers/echo_handler.cc)
+add_library(error_handler_lib src/handlers/error_handler.cc)
+
+# Add necessary links for server, session and helpers
 add_library(manager_lib src/request_manager.cc)
-target_link_libraries(content_handler_lib handler_lib Boost::filesystem Boost::log_setup Boost::log)
+add_library(handler_factory_lib src/handler_factory.cc)
 target_link_libraries(echo_handler_lib handler_lib Boost::log_setup Boost::log)
-target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
-target_link_libraries(server_lib session_lib content_handler_lib echo_handler_lib error_handler_lib signal_lib)
-target_link_libraries(config_parser_lib servlet_lib)
-target_link_libraries(manager_lib servlet_lib handler_lib error_handler_lib Boost::log_setup Boost::log)
+target_link_libraries(server_lib session_lib signal_lib)
+target_link_libraries(handler_factory_lib echo_handler_lib)
+target_link_libraries(manager_lib handler_lib handler_factory_lib location_data_lib Boost::log_setup Boost::log)
 target_link_libraries(session_lib manager_lib)
-target_link_libraries(content_handler_lib Boost::log_setup Boost::log file_reader_lib)
 target_link_libraries(file_reader_lib Boost::system Boost::filesystem)
+target_link_libraries(config_parser_lib location_data_lib handler_factory_lib Boost::log_setup Boost::log)
+
+# Add necessary links for handlers
+target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::filesystem Boost::log_setup Boost::log)
+target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
+
+# Link your handler to the  handler registry library
+target_link_libraries(handler_registration_lib echo_handler_lib static_handler_lib error_handler_lib)
 
 # add server executable
 add_executable(server src/server_main.cc)
-target_link_libraries(server config_parser_lib session_lib server_lib logging_lib Boost::system)
+target_link_libraries(server config_parser_lib session_lib server_lib manager_lib logging_lib handler_registration_lib Boost::system)
 
 # Update test executable name, srcs, and deps
 add_executable(config_parser_test tests/config_parser_test.cc)
-target_link_libraries(config_parser_test config_parser_lib gtest_main)
+target_link_libraries(config_parser_test config_parser_lib handler_registration_lib gtest_main)
 add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
-add_executable(servlet_test tests/servlet_test.cc)
-target_link_libraries(servlet_test servlet_lib gtest_main)
 add_executable(server_test tests/server_test.cc)
-target_link_libraries(server_test server_lib gtest_main)
+target_link_libraries(server_test server_lib file_reader_lib gtest_main)
 add_executable(manager_test tests/request_manager_test.cc)
 target_link_libraries(
     manager_test 
     manager_lib 
     config_parser_lib
     error_handler_lib
-    content_handler_lib
-    echo_handler_lib
     handler_lib
     file_reader_lib 
+    handler_factory_lib
+    handler_registration_lib
     gtest_main
 )
-add_executable(content_handler_test tests/content_handler_test.cc)
-target_link_libraries(content_handler_test content_handler_lib gtest_main)
+add_executable(static_handler_test tests/static_handler_test.cc)
+target_link_libraries(static_handler_test static_handler_lib gtest_main)
 
 # Update with test binary
 gtest_discover_tests(config_parser_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(echo_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-gtest_discover_tests(servlet_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(manager_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-gtest_discover_tests(content_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(static_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(server_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 
@@ -111,18 +115,19 @@ generate_coverage_report(
         handler_lib 
         config_parser_lib 
         session_lib server_lib 
-        content_handler_lib
+        static_handler_lib
         echo_handler_lib 
         error_handler_lib
-        servlet_lib 
         file_reader_lib
         manager_lib  
         server_lib  
+        handler_factory_lib
+        location_data_lib
+        handler_registration_lib
     TESTS 
         config_parser_test 
         echo_handler_test 
-        servlet_test
         manager_test
-        content_handler_test
+        static_handler_test
         server_test
 )

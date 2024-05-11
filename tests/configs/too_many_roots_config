@@ -1,7 +1,7 @@
 server{
     listen 80;
     location /static/ {
-        behavior serve-content;
+        behavior StaticHandler;
         root /etc/files;
         root /usr/shared/files;
     }

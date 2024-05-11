@@ -4,15 +4,6 @@
 #include <boost/asio.hpp>
 #include "session.h"
 
-struct ServerConfig {
-    RequestManager request_manager;
-    unsigned short port;
-    ServerConfig(
-        RequestManager request_manager,
-        unsigned short port
-    );
-};
-
 class server {
 public:
     // Constructor for the server class.
@@ -20,8 +11,11 @@ public:
     // The server starts accepting incoming connections upon construction.
     // Parameters:
     //   io_service: Reference to the Boost.Asio IO service to be used for asynchronous operations.
+    //   request_manager: The object in charge of determining which handler to use and returning the response
     //   port: The port number on which the server will listen for incoming connections.
-    server(boost::asio::io_service& io_service, ServerConfig& config_data);
+    server(boost::asio::io_service& io_service, 
+        RequestManager& request_manager,
+        unsigned short port);
     
     // Public member function to start accepting connections.
     // Creates a new session object for each incoming connection and initiates an asynchronous accept operation.

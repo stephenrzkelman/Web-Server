@@ -7,11 +7,10 @@
 #include <optional>
 #include <queue>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include "servlet.h"
+#include "location_data.h"
 
 // string containing digits, to check if strings are numeric
 const std::string DIGITS = "0123456789";
@@ -49,8 +48,6 @@ class NginxConfigStatement {
   std::unique_ptr<NginxConfig> child_block_;
 };
 
-class Servlet;
-
 // The parsed representation of the entire config.
 class NginxConfig {
  public:
@@ -75,21 +72,19 @@ class NginxConfig {
   int findPort();
   // iterates through contexts, starting from this->contextName, to end up in main->server,
   // then searches for valid "location" blocks and extracts match function and desired behavior from it
-  // return vector of items, each containing this matching functionality, as well as the desired behavior
-  std::vector<std::shared_ptr<Servlet>> findPaths();
+  // return map of locations in format <string of path, LocationData>
+  std::unordered_map<std::string, LocationData> findPaths();
   // to be called from main->server->location context,
-  // searches for valid "behavior" directive and extracts specified behavior from it
-  // return the specified behavior
-  // if no specified behavior exists in the expected location,
-  // or is invalid (not listed in VALID_BEHAVIORS), return an empty string
-  std::string findServletBehavior();
+  // return the specified handler
+  // if no specified handler exists in the expected location return empty string
+  std::string findLocationHandler();
   // to be called from main->server->location context,
   // seraches for valid "root" directive and extracts specified root directory from it
   // return the specified root directory
   // if no specified root exists in the expected location,return an empty string
   // if multiple specified roots exist, or some other issue occurs (i.e. called from wrong context),
   // return the std::nullopt
-  std::optional<std::string> findServletRoot();
+  std::optional<std::string> findLocationRoot();
   // validate that the NginxConfig contains only allowed directives and subcontexts
   bool Validate(std::string contextType = "main");
 };

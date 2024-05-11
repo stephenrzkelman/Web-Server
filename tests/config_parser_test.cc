@@ -1,7 +1,12 @@
 #include "gtest/gtest.h"
 #include "config_parser.h"
+#include "location_data.h"
+#include "handlers/handler_registration.h"
 #include <string>
 #include <vector>
+
+const std::string ECHO_REQUEST = "EchoHandler";
+const std::string SERVE_CONTENT = "StaticHandler";
 
 class NginxConfigParserTest : public testing::Test {
   protected:
@@ -48,7 +53,7 @@ TEST_F(NginxConfigParserTest, QuotesConfig) {
 TEST_F(NginxConfigParserTest, NestedBraces) {
   parse_success(
     "configs/docker_config",
-    "server {\n  listen 80;\n  location = /echo {\n    behavior echo-request;\n  }\n}\n"
+    "server {\n  listen 80;\n  location = /echo {\n    behavior EchoHandler;\n  }\n}\n"
   );
 }
 
@@ -92,6 +97,7 @@ class NginxConfigTest : public testing :: Test {
   protected:
     void SetUp(const char* file_name) {
       full_parsed_config = NginxConfig();
+      HandlerRegistration::register_handlers();
       parser.Parse(file_name, &full_parsed_config);
     }
     void validation_success(){
@@ -106,23 +112,23 @@ class NginxConfigTest : public testing :: Test {
     void find_port_failure(){
       EXPECT_EQ(full_parsed_config.findPort(), -1);
     }
-    void find_paths_success(int expected_servlets, std::vector<std::string> expected_behaviors, std::vector<std::string> expected_roots){
-      std::vector<std::shared_ptr<Servlet>> servlets = full_parsed_config.findPaths();
-      std::vector<std::string> behaviors;
-      std::vector<std::string> roots;
-      for(const std::shared_ptr<Servlet>& servlet : servlets){
-        behaviors.push_back(servlet->servletBehavior());
-        roots.push_back(servlet->servletRoot());
-      }
-      EXPECT_EQ(servlets.size(), expected_servlets);
-      for(int i = 0; i < servlets.size(); i++){
-        EXPECT_EQ(expected_behaviors[i], behaviors[i]);
-        EXPECT_EQ(expected_roots[i], roots[i]);
+    void find_paths_success(std::unordered_map<std::string, LocationData> expected_locations){
+      std::unordered_map<std::string, LocationData> locations = full_parsed_config.findPaths();
+      EXPECT_EQ(locations.size(), expected_locations.size()); // same number of locations
+      for(auto loc : locations){
+        EXPECT_FALSE(expected_locations.find(loc.first) == expected_locations.end()); // path exists in expected_locations
+        LocationData location_to_test = expected_locations[loc.first]; // expected location with same path
+        EXPECT_EQ(location_to_test.handler_, loc.second.handler_); // handlers are the same
+        EXPECT_EQ(location_to_test.arg_map_.size(), loc.second.arg_map_.size()); // same number of args
+        for(auto arg : loc.second.arg_map_) {
+          EXPECT_FALSE(location_to_test.arg_map_.find(arg.first) == location_to_test.arg_map_.end()); // arg exists in expected
+          EXPECT_EQ(location_to_test.arg_map_[arg.first], arg.second); // passed in value to arg matches expected
+        }
       }
     }
     void find_paths_failure(){
-      std::vector<std::shared_ptr<Servlet>> servlets = full_parsed_config.findPaths();
-      EXPECT_EQ(servlets.size(), 0);
+      std::unordered_map<std::string, LocationData> locations = full_parsed_config.findPaths();
+      EXPECT_EQ(locations.size(), 0);
     }
 
   NginxConfig full_parsed_config;
@@ -190,17 +196,19 @@ TEST_F(NginxConfigTest, NoPaths){
   find_paths_failure();
 }
 
-// should succeed at extracting single servlet in a config which specifies only 1 path
+// should succeed at extracting single locations in a config which specifies only 1 path
 TEST_F(NginxConfigTest, OnePath){
   SetUp("configs/one_path_config");
-  find_paths_success(1, {ECHO_REQUEST}, {""});
+  find_paths_success({ {"/echo", LocationData(ECHO_REQUEST, {})} });
 }
 
-// should succeed at extracting 2 servlets from config which specifies 2 paths
+// should succeed at extracting 2 locations from config which specifies 2 paths
 TEST_F(NginxConfigTest, TwoPaths){
   SetUp("configs/two_paths_config");
   find_port_success(80);
-  find_paths_success(2, {ECHO_REQUEST, SERVE_CONTENT}, {"","/etc/files"});
+  find_paths_success({ 
+    {"/echo", LocationData(ECHO_REQUEST, {})}, 
+    {"/static", LocationData(SERVE_CONTENT, { {"root","/etc/files"} })} });
 }
 
 // should fail if any match modifier is invalid
@@ -234,6 +242,7 @@ TEST_F(NginxConfigTest, DefaultBehavior){
   find_paths_failure();
 }
 
+// This is due to the fact that handlers are not known ahead of time anymore
 // any badly configured locations should cause find paths to fail
 TEST_F(NginxConfigTest, BadLocations){
   SetUp("configs/prefix_echo_with_root_config");

@@ -7,18 +7,13 @@
 
 namespace asio = boost::asio;
 
-ServerConfig::ServerConfig(
-    RequestManager request_manager,
-    unsigned short port
-): request_manager(request_manager), 
-    port(port){}
-
-server::server(boost::asio::io_service& io_service, ServerConfig& config_data)
+server::server(boost::asio::io_service& io_service, 
+    RequestManager& request_manager,
+    unsigned short port)
 : io_service_(io_service),
-acceptor_(io_service, tcp::endpoint(tcp::v4(), config_data.port))
-{
-    request_manager_.reset(&config_data.request_manager);
-    BOOST_LOG_TRIVIAL(info) << "Server starting up";
+acceptor_(io_service, tcp::endpoint(tcp::v4(), port)) {
+    request_manager_.reset(&request_manager);
+    BOOST_LOG_TRIVIAL(info) << "Server starting up";  
 }
 
 void server::start_accept() {

@@ -1,10 +1,10 @@
 server{
     listen 80;
     location = /echo {
-        behavior echo-request;
+        behavior EchoHandler;
     }
     location ~ /static {
-        behavior serve-content;
+        behavior StaticHandler;
         root /etc/files;
     }
 }

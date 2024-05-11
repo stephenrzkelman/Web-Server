@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "echo_request_handler.h"
+#include "handlers/echo_handler.h"
 
 const std::string BAD_RESPONSE = 
 "HTTP/1.1 400 Bad Request\r\n\
@@ -11,7 +11,7 @@ class EchoHandlerTest : public testing::Test {
   protected:
     void SetUp() override{}
 
-  echo_request_handler echoHandler;
+  EchoHandler echoHandler;
 };
 
 // Handler should take poor request buffer and return a buffer sequence of a bad response.

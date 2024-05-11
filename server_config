@@ -1,10 +1,10 @@
 server{
     listen 80;
-    location = /echo {
-        behavior echo-request;
+    location /echo {
+        behavior EchoHandler;
     }
-    location ~ /static[0-9]*/ {
-        behavior serve-content;
+    location /static {
+        behavior StaticHandler;
         root /usr/src/projects/fortnite-gamers/files;
     }
 }

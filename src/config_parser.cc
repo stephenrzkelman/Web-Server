@@ -16,6 +16,7 @@
 #include <vector>
 #include <boost/log/trivial.hpp>
 #include "config_parser.h"
+#include "handler_factory.h"
 
 NginxConfig::NginxConfig(std::string contextName)
 :contextName(contextName){}
@@ -366,7 +367,7 @@ int NginxConfig::findPort(){
   return -1;
 }
 
-std::string NginxConfig::findServletBehavior(){
+std::string NginxConfig::findLocationHandler(){
   NginxConfig* curConfig = this;
   if(curConfig->contextName == LOCATION){
     std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(BEHAVIOR, 1);
@@ -380,18 +381,13 @@ std::string NginxConfig::findServletBehavior(){
     else { 
       NginxConfigStatement* behavior_directive = possible_directives[0];
       std::string behavior = behavior_directive->tokens_[1];
-      if(VALID_BEHAVIORS.find(behavior) == VALID_BEHAVIORS.end()){
-        return "";
-      }
-      else{
-        return behavior;
-      }
+      return behavior;
     }
   }
   return "";
 }
 
-std::optional<std::string> NginxConfig::findServletRoot(){
+std::optional<std::string> NginxConfig::findLocationRoot(){
   NginxConfig* curConfig = this;
   if(curConfig->contextName == LOCATION){
     std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(ROOT, 1);
@@ -410,64 +406,53 @@ std::optional<std::string> NginxConfig::findServletRoot(){
   return {};
 }
 
-std::vector<std::shared_ptr<Servlet>> NginxConfig::findPaths(){
+std::unordered_map<std::string, LocationData> NginxConfig::findPaths(){
   NginxConfig* curConfig = this;
   std::vector<NginxConfig*> possible_contexts;
-  std::vector<std::shared_ptr<Servlet>> servlets;
+  std::unordered_map<std::string, LocationData> locations;
   if(curConfig->contextName == MAIN) {
     possible_contexts = curConfig->findChildBlocks(SERVER, 0);
     if (possible_contexts.size() != 1) {
-      return std::vector<std::shared_ptr<Servlet>>();
+      return std::unordered_map<std::string, LocationData>();
     }
     curConfig = possible_contexts[0];
   }
   if(curConfig->contextName == SERVER){
     std::vector<NginxConfigStatement*> modified_location_directives = curConfig->findDirectives(LOCATION, 2);
     for (const auto& directive : modified_location_directives){
-      if (MATCH_TYPES.find(directive->tokens_[1]) == MATCH_TYPES.end()){
-        // return empty array if invalid match modifier string provided, to indicate error
-        return std::vector<std::shared_ptr<Servlet>>();
+      std::string location_handler = directive->child_block_.get()->findLocationHandler();
+      // TODO: this creation of arg map is temporary until config parser generalizes arg parsing
+      std::unordered_map<std::string,std::string> arg_map;
+      std::optional<std::string> location_root_optional = directive->child_block_.get()->findLocationRoot();
+      if (location_root_optional != std::nullopt) {
+          std::string location_root = location_root_optional.value();
+          if (!location_root.empty()) {
+            arg_map["root"] = location_root;
+          }
       }
-      std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
-      std::optional<std::string> servlet_root_optional = directive->child_block_.get()->findServletRoot();
-      if (servlet_root_optional == std::nullopt || 
-          servlet_behavior == "") {
-        return std::vector<std::shared_ptr<Servlet>>();
+      if (!HandlerFactory::validate(location_handler,arg_map)) {
+        return std::unordered_map<std::string, LocationData>();
       }
-      std::string servlet_root = servlet_root_optional.value();
-      if ((servlet_behavior != ECHO_REQUEST && servlet_root == "") || 
-          (servlet_behavior == ECHO_REQUEST && servlet_root != "")){
-        return std::vector<std::shared_ptr<Servlet>>();
-      }
-      servlets.push_back(
-        std::make_shared<Servlet>(Servlet(
-          directive->tokens_[1],
-          directive->tokens_[2],
-          servlet_behavior,
-          servlet_root
-      )));
+      locations[directive->tokens_[2]] = LocationData(location_handler,arg_map);
     }
     std::vector<NginxConfigStatement*> prefix_location_directives = curConfig->findDirectives(LOCATION, 1);
     for (const auto& directive : prefix_location_directives){
-      std::string servlet_behavior = directive->child_block_.get()->findServletBehavior();
-      std::optional<std::string> servlet_root_optional = directive->child_block_.get()->findServletRoot();
-      if (servlet_root_optional == std::nullopt || 
-          servlet_behavior == "") {
-        return std::vector<std::shared_ptr<Servlet>>();
+      std::string location_handler = directive->child_block_.get()->findLocationHandler();
+      // TODO: this creation of arg map is temporary until config parser generalizes arg parsing
+      std::unordered_map<std::string,std::string> arg_map;
+      std::optional<std::string> location_root_optional = directive->child_block_.get()->findLocationRoot();
+      if (location_root_optional != std::nullopt) {
+          std::string location_root = location_root_optional.value();
+          if (!location_root.empty()) {
+            arg_map["root"] = location_root;
+          }
       }
-      std::string servlet_root = servlet_root_optional.value();
-      if ((servlet_behavior != ECHO_REQUEST && servlet_root == "") || 
-          (servlet_behavior == ECHO_REQUEST && servlet_root != "")){
-        return std::vector<std::shared_ptr<Servlet>>();
+      if (!HandlerFactory::validate(location_handler,arg_map)) {
+        return std::unordered_map<std::string, LocationData>();
       }
-      servlets.push_back(
-        std::make_shared<Servlet>(Servlet(
-          STANDARD_PREFIX_MATCH,
-          directive->tokens_[1],
-          servlet_behavior,
-          servlet_root
-      )));
+      locations[directive->tokens_[1]] = LocationData(location_handler,arg_map);
+
     }
   }
-  return servlets;
+  return locations;
 }
