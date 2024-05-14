@@ -1,8 +1,0 @@
-server{
-    location - /echo {
-        behavior echo;
-    }
-    location /echo {
-        behavior echo;
-    }
-}

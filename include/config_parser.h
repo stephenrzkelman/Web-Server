@@ -10,33 +10,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "constants.h"
 #include "location_data.h"
-
-// string containing digits, to check if strings are numeric
-const std::string DIGITS = "0123456789";
-
-// some config keywords
-// names of subcontexts
-const std::string MAIN = "main";
-const std::string SERVER = "server";
-const std::string LOCATION = "location";
-// directives/commands
-const std::string LISTEN = "listen";
-const std::string BEHAVIOR = "behavior";
-const std::string ROOT = "root";
-
-// allowed directives in a given context type
-const std::unordered_map<std::string, std::unordered_set<std::string>> ALLOWED_DIRECTIVES = {
-  {MAIN, {}},
-  {SERVER, {LISTEN}},
-  {LOCATION, {BEHAVIOR, ROOT}}
-};
-// allowed subcontexts which may appear in a given context type
-const std::unordered_map<std::string, std::unordered_set<std::string>> ALLOWED_SUBCONTEXTS = {
-  {MAIN, {SERVER}},
-  {SERVER, {LOCATION}},
-  {LOCATION, {}}
-};
 
 class NginxConfig;
 
@@ -55,36 +30,30 @@ class NginxConfig {
   std::string ToString(int depth = 0);
   std::vector<std::shared_ptr<NginxConfigStatement>> statements_;
   std::string contextName;
-  // return child-block of an NginxConfigStatement from statements_ whose first token matches `blockName`
-  // if no such NginxConfigStatement exists, or is not unique, return a nullptr
-  std::vector<NginxConfig*> findChildBlocks(std::string blockName, uint argCount);
-  // return NginxConfigStatement from statements_ whose first token (directive/command) matches `directiveName`
-  // if no such NginxConfigStatement exists, or is not unique, return a nullptr
-  // if the unique matching NginxConfigStatement has the wrong number of (argument) tokens 
-  // (i.e. some number other than `argCount`) following the directive/command, return a nullptr
-  // an example `directiveName` would be 'listen', which indicates which port we want the server to listen on
-  std::vector<NginxConfigStatement*> findDirectives(std::string directiveName, uint argCount);
-  // iterates through contexts, starting from this->contextName, to end up in main->server,
-  // then search for valid "listen" directive and extracts port value from it.
+  // assumes config is valid, i.e. is a result from calling Parse() on a file
+  // return vector of NginxConfigStatements found within the current context, 
+  // whose first token (directive/command) matches `directiveName`
+  // if no such NginxConfigStatement exists, return an empty vector
+  // an example `directiveName` would be 'port', which indicates which port we want the server to listen on
+  std::vector<NginxConfigStatement*> findDirectives(std::string directiveName);
+  // to be called from main context
+  // search for valid "port" directive and extracts port value from it.
   // return the specified port for the server.
   // if no specified port exists in the expected location (inside server{...}), 
   // or the port value specified is invalid (negative, non-integer, contains letters, etc), return -1
   int findPort();
-  // iterates through contexts, starting from this->contextName, to end up in main->server,
-  // then searches for valid "location" blocks and extracts match function and desired behavior from it
-  // return map of locations in format <string of path, LocationData>
-  std::unordered_map<std::string, LocationData> findPaths();
-  // to be called from main->server->location context,
-  // return the specified handler
-  // if no specified handler exists in the expected location return empty string
-  std::string findLocationHandler();
-  // to be called from main->server->location context,
-  // seraches for valid "root" directive and extracts specified root directory from it
-  // return the specified root directory
-  // if no specified root exists in the expected location,return an empty string
-  // if multiple specified roots exist, or some other issue occurs (i.e. called from wrong context),
-  // return the std::nullopt
-  std::optional<std::string> findLocationRoot();
+  // to be called from main context
+  // searches for "location" blocks and extracts path, handler, and root information from them
+  // if succesful, returns map from path strings to LocationData
+  // if any failure occurs (invalid handler specified, too many/few roots in a block, etc.),
+  // it will return a nullopt.
+  std::optional<std::unordered_map<std::string, LocationData>> findLocations();
+  // to be called from any location context
+  // searches location block for a root directive, and returns the specified path
+  // if no root directive is found, returns the empty string
+  // if multiple root directives are found, returns a nullopt
+  // if not called from a location context, returns a nullopt
+  std::optional<std::string> findRoot();
   // validate that the NginxConfig contains only allowed directives and subcontexts
   bool Validate(std::string contextType = "main");
 };

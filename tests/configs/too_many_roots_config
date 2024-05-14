@@ -1,8 +1,0 @@
-server{
-    listen 80;
-    location /static/ {
-        behavior StaticHandler;
-        root /etc/files;
-        root /usr/shared/files;
-    }
-}

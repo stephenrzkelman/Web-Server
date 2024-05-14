@@ -232,7 +232,8 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
       config_stack.push(new_config);
     } else if (token_type == TOKEN_TYPE_END_BLOCK) {
       if (last_token_type != TOKEN_TYPE_STATEMENT_END &&
-      last_token_type != TOKEN_TYPE_END_BLOCK) {
+          last_token_type != TOKEN_TYPE_END_BLOCK &&
+          last_token_type != TOKEN_TYPE_START_BLOCK) {
         // Error.
         break;
       }
@@ -249,7 +250,8 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
       if (config_stack.size() != 1){
         break;
       }
-      return true;
+      // validate keyword locations & arg counts
+      return config->Validate();
     } else {
       // Error. Unknown token.
       break;
@@ -260,7 +262,7 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
   BOOST_LOG_TRIVIAL(error) << "Bad transition from " << TokenTypeAsString(last_token_type) << " to " << TokenTypeAsString(token_type);
   BOOST_LOG_TRIVIAL(error) << "Parse unsuccessful";
 
-  // in case of error, config object should remain empty
+  // parse failed
   return false;
 }
 
@@ -278,26 +280,12 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
   return return_value;
 }
 
-std::vector<NginxConfig*> NginxConfig::findChildBlocks(std::string targetBlockName, uint argCount){
-  std::vector<NginxConfig*> blocks_found;
-  NginxConfig* next_block;
-  for (const auto& statement : statements_){
-    next_block = statement->child_block_.get();
-    if(next_block != nullptr){
-      if(next_block->contextName == targetBlockName && 
-        statement->tokens_.size() == argCount + 1) {
-        blocks_found.push_back(next_block);
-      }
-    }
-  }
-  return blocks_found;
-}
-
-std::vector<NginxConfigStatement*> NginxConfig::findDirectives(std::string directiveName, uint argCount){
+std::vector<NginxConfigStatement*> NginxConfig::findDirectives(std::string directiveName){
+  uint expected_arg_count = EXPECTED_ARG_COUNTS.find(directiveName)->second;
   std::vector<NginxConfigStatement*> directives_found;
   for (const auto& statement : statements_) {
     if (statement->tokens_[0] == directiveName &&
-      statement->tokens_.size() == argCount + 1) {
+        statement->tokens_.size() == expected_arg_count + 1) {
       directives_found.push_back(statement.get());
     }
   }
@@ -306,18 +294,24 @@ std::vector<NginxConfigStatement*> NginxConfig::findDirectives(std::string direc
 
 bool NginxConfig::Validate(std::string baseContextType){
   std::queue<NginxConfig*> unprocessed_contexts;
+  BOOST_LOG_TRIVIAL(info) << "Starting Validate";
   unprocessed_contexts.push(this);
   while(!unprocessed_contexts.empty()){
     NginxConfig* currentContext = unprocessed_contexts.front();
     std::string currentContextType = currentContext->contextName;
     unprocessed_contexts.pop();
-    std::unordered_set<std::string> currentAllowedDirectives = ALLOWED_DIRECTIVES.at(currentContextType);
-    std::unordered_set<std::string> currentAllowedSubcontexts = ALLOWED_SUBCONTEXTS.at(currentContextType);
     for(const auto& statement : currentContext->statements_){
-      if(currentAllowedDirectives.find(statement->tokens_[0]) != currentAllowedDirectives.end()){
-        continue;
+      std::string statement_type = statement->tokens_[0];
+      BOOST_LOG_TRIVIAL(info) << "Validating " << statement_type;
+      if(VALID_DIRECTIVES.contains(statement_type) && 
+        VALID_PARENT_CONTEXTS.find(statement_type)->second == currentContextType){
+        NginxConfig* subcontext = statement->child_block_.get();
+        if(subcontext != nullptr){
+          return false;
+        }
       }
-      else if(currentAllowedSubcontexts.find(statement->tokens_[0]) != currentAllowedSubcontexts.end()){
+      else if(VALID_CONTEXTS.contains(statement_type) && 
+              VALID_PARENT_CONTEXTS.find(statement_type)->second == currentContextType){
         NginxConfig* subcontext = statement->child_block_.get();
         if (subcontext == nullptr){
           return false;
@@ -325,6 +319,12 @@ bool NginxConfig::Validate(std::string baseContextType){
         unprocessed_contexts.push(subcontext);
       }
       else{
+        return false;
+      }
+      // check argument count of statement
+      int num_args = statement->tokens_.size() - 1;
+      int expected_args = EXPECTED_ARG_COUNTS.find(statement->tokens_[0])->second;
+      if(num_args != expected_args){
         return false;
       }
     }
@@ -336,14 +336,7 @@ int NginxConfig::findPort(){
   NginxConfig* curConfig = this;
   std::vector<NginxConfig*> possible_contexts;
   if(curConfig->contextName == MAIN) {
-    possible_contexts = curConfig->findChildBlocks(SERVER, 0);
-    if (possible_contexts.size() != 1) {
-      return -1;
-    }
-    curConfig = possible_contexts[0];
-  }
-  if(curConfig->contextName == SERVER){
-    std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(LISTEN, 1);
+    std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(PORT);
     if (possible_directives.size() != 1) {
       return -1;
     }
@@ -367,92 +360,59 @@ int NginxConfig::findPort(){
   return -1;
 }
 
-std::string NginxConfig::findLocationHandler(){
-  NginxConfig* curConfig = this;
-  if(curConfig->contextName == LOCATION){
-    std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(BEHAVIOR, 1);
-    if (possible_directives.size() == 0) {
-      // No default behavior
-      return "";
-    }
-    else if(possible_directives.size() > 1){
-      return "";
-    }
-    else { 
-      NginxConfigStatement* behavior_directive = possible_directives[0];
-      std::string behavior = behavior_directive->tokens_[1];
-      return behavior;
-    }
+std::optional<std::string> NginxConfig::findRoot(){
+  if(this->contextName != LOCATION){
+    return {};
   }
-  return "";
+  std::vector<NginxConfigStatement*> possible_directives = findDirectives(ROOT);
+  if(possible_directives.size() == 0){
+    return "";
+  }
+  else if(possible_directives.size() > 1){
+    return {};
+  }
+  return possible_directives[0]->tokens_[1];
 }
 
-std::optional<std::string> NginxConfig::findLocationRoot(){
-  NginxConfig* curConfig = this;
-  if(curConfig->contextName == LOCATION){
-    std::vector<NginxConfigStatement*> possible_directives = curConfig->findDirectives(ROOT, 1);
-    if(possible_directives.size() == 0){
-      return "";
+std::optional<std::unordered_map<std::string, LocationData>> NginxConfig::findLocations(){
+  if(this->contextName != MAIN){
+    return {}; // returns nullopt, to indicate some sort of failure
+  }
+  std::unordered_map<std::string, LocationData> locations;
+  std::vector<NginxConfigStatement*> location_directives = this->findDirectives(LOCATION);
+  for (const auto& directive : location_directives){
+    std::string path = directive->tokens_[1];
+    // trailing '/' should be left out of saved path, for convenience when matching
+    // linux treats any number of repeated '/' as a single '/'
+    while(path.back() == '/'){
+      path.resize(path.size() - 1);
     }
-    else if(possible_directives.size() > 1){
+    // no duplicate paths should be allowed
+    if(locations.contains(path)){
       return {};
     }
-    else { 
-      NginxConfigStatement* root_directive = possible_directives[0];
-      std::string root = root_directive->tokens_[1];
-      return root;
+    std::string handler = directive->tokens_[2];
+    if(!VALID_HANDLERS.contains(handler)){
+      return {};
     }
+    LocationData location_data;
+    location_data.handler_ = handler;
+    NginxConfig* location_block = directive->child_block_.get();
+    if(handler == STATIC_HANDLER){
+      std::optional<std::string> root = location_block->findRoot();
+      if(!root.has_value() || root.value() == ""){
+        return {};
+      }
+      location_data.arg_map_.insert({ROOT, root.value()});
+    }
+    else if(handler == ECHO_HANDLER){
+      std::optional<std::string> root = location_block->findRoot();
+      // verify that no root was provided
+      if(!root.has_value() || root.value() != ""){
+        return {};
+      }
+    }
+    locations.insert({path, location_data});
   }
-  return {};
-}
-
-std::unordered_map<std::string, LocationData> NginxConfig::findPaths(){
-  NginxConfig* curConfig = this;
-  std::vector<NginxConfig*> possible_contexts;
-  std::unordered_map<std::string, LocationData> locations;
-  if(curConfig->contextName == MAIN) {
-    possible_contexts = curConfig->findChildBlocks(SERVER, 0);
-    if (possible_contexts.size() != 1) {
-      return std::unordered_map<std::string, LocationData>();
-    }
-    curConfig = possible_contexts[0];
-  }
-  if(curConfig->contextName == SERVER){
-    std::vector<NginxConfigStatement*> modified_location_directives = curConfig->findDirectives(LOCATION, 2);
-    for (const auto& directive : modified_location_directives){
-      std::string location_handler = directive->child_block_.get()->findLocationHandler();
-      // TODO: this creation of arg map is temporary until config parser generalizes arg parsing
-      std::unordered_map<std::string,std::string> arg_map;
-      std::optional<std::string> location_root_optional = directive->child_block_.get()->findLocationRoot();
-      if (location_root_optional != std::nullopt) {
-          std::string location_root = location_root_optional.value();
-          if (!location_root.empty()) {
-            arg_map["root"] = location_root;
-          }
-      }
-      if (!HandlerFactory::validate(location_handler,arg_map)) {
-        return std::unordered_map<std::string, LocationData>();
-      }
-      locations[directive->tokens_[2]] = LocationData(location_handler,arg_map);
-    }
-    std::vector<NginxConfigStatement*> prefix_location_directives = curConfig->findDirectives(LOCATION, 1);
-    for (const auto& directive : prefix_location_directives){
-      std::string location_handler = directive->child_block_.get()->findLocationHandler();
-      // TODO: this creation of arg map is temporary until config parser generalizes arg parsing
-      std::unordered_map<std::string,std::string> arg_map;
-      std::optional<std::string> location_root_optional = directive->child_block_.get()->findLocationRoot();
-      if (location_root_optional != std::nullopt) {
-          std::string location_root = location_root_optional.value();
-          if (!location_root.empty()) {
-            arg_map["root"] = location_root;
-          }
-      }
-      if (!HandlerFactory::validate(location_handler,arg_map)) {
-        return std::unordered_map<std::string, LocationData>();
-      }
-      locations[directive->tokens_[1]] = LocationData(location_handler,arg_map);
-
-    }
-  }
-  return locations;
+  return locations; // may return empty map, to distinguish from failure
 }

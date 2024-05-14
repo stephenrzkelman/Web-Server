@@ -1,0 +1,4 @@
+location /static StaticHandler{
+    root /etc/files;
+    root /usr/files;
+}

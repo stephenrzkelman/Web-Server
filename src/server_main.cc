@@ -48,20 +48,22 @@ int main(int argc, char* argv[])
     NginxConfig config;
     bool successful_parse = config_parser.Parse(argv[1], &config);
     if(!successful_parse){
-      throw ("Failed to parse config");
-    }
-    bool valid_config = config.Validate();
-    if(!valid_config){
-      throw ("Config contains unrecognized directive or subcontext");
+      BOOST_LOG_TRIVIAL(info) << "Config failed to parse & validate";
+      throw ("Config failed to parse or is invalid");
     }
     int port_number = config.findPort();
     if(port_number == -1){
+      BOOST_LOG_TRIVIAL(info) << "Port not provided properly";
       throw ("Port number not provided properly");
     }
 
     //Setup request manager
-    std::unordered_map<std::string, LocationData> locations = config.findPaths();
-    RequestManager request_manager = RequestManager(locations);
+    std::optional<std::unordered_map<std::string, LocationData>> locations = config.findLocations();
+    if(!locations.has_value()){
+      BOOST_LOG_TRIVIAL(info) << "Failed to extract location data from config";
+      throw("Failed to extract location data from config");
+    }
+    RequestManager request_manager = RequestManager(locations.value());
 
     //Setup server
     server s(io_service, request_manager, port_number);

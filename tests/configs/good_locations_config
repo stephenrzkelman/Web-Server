@@ -1,5 +1,4 @@
-port 80;
 location /echo EchoHandler{}
 location /static StaticHandler{
-    root /usr/src/projects/fortnite-gamers/files;
+    root /etc/files;
 }

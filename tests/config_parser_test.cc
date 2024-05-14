@@ -5,9 +5,6 @@
 #include <string>
 #include <vector>
 
-const std::string ECHO_REQUEST = "EchoHandler";
-const std::string SERVE_CONTENT = "StaticHandler";
-
 class NginxConfigParserTest : public testing::Test {
   protected:
     void SetUp() override{}
@@ -23,46 +20,35 @@ class NginxConfigParserTest : public testing::Test {
   NginxConfig out_config;
 };
 
-// the basic given config should parse without failure
-TEST_F(NginxConfigParserTest, SimpleConfig) {
-  parse_success(
-    "configs/example_config",
-    "foo \"bar\";\nserver {\n  listen 80;\n  server_name foo.com;\n  root /home/ubuntu/sites/foo/;\n}\n"
-  );
+// unrecognized keywords should cause parse to fail
+TEST_F(NginxConfigParserTest, BadKeywordConfig) {
+    parse_fail("configs/bad_keyword_config");
 }
 
-// Parsing a config with an unclosed brace should fail
+// unclosed brace should cause parse to fail
 TEST_F(NginxConfigParserTest, OpenBraceConfig) {
   parse_fail("configs/open_brace_config");
 }
 
-// Parsing a config with a dangling close-brace should fail
+// a dangling close-brace should cause parse to fail
 TEST_F(NginxConfigParserTest, CloseBraceConfig) {
   parse_fail("configs/close_brace_config");
 }
 
-// Quoted strings should allow escape-characters
+// single and double quotes should allow escape characters
 TEST_F(NginxConfigParserTest, QuotesConfig) {
   parse_success(
     "configs/quotes_config",
-    "quote1 \'\';\nquote2 \"\";\nescape1 \'\\\'\';\nescape2 \"\\\"\";\nend1 \'hello\' \'world\';\nend2 \"welcome\" \"home\";\n"
+    "port '';\nport \"\";\nport '\\'';\nport \"\\\"\";\nlocation 'hello' 'world' {\n}\nlocation \"welcome\" \"home\" {\n}\n"
   );
 }
 
-// Nested braces should pass
-TEST_F(NginxConfigParserTest, NestedBraces) {
-  parse_success(
-    "configs/docker_config",
-    "server {\n  listen 80;\n  location = /echo {\n    behavior EchoHandler;\n  }\n}\n"
-  );
-}
-
-// Single-quoted strings should be followed by a space or a semicolon
+// single-quoted strings should be followed by a space or a semicolon
 TEST_F(NginxConfigParserTest, BadSingleQuoteFollow) {
   parse_fail("configs/bad_single_quote_follow");
 }
 
-// Double-quoted strings should be followed by a space or a semicolon
+// double-quoted strings should be followed by a space or a semicolon
 TEST_F(NginxConfigParserTest, BadDoubleQuoteFollow) {
   parse_fail("configs/bad_double_quote_follow");
 }
@@ -72,27 +58,56 @@ TEST_F(NginxConfigParserTest, CarriageReturn) {
   parse_fail("configs/crlf_config");
 }
 
-// parse should fail on nonexistent config file
+// parse should fail on a nonexistent config file
 TEST_F(NginxConfigParserTest, NonexistentConfig) {
   parse_fail("configs/nonexistent_config");
 }
 
 // only "normal-type" tokens should be able to label a block
+// i.e., no semicolons in block label
 TEST_F(NginxConfigParserTest, BadBlockLabel) {
   parse_fail("configs/semicolon_before_block_config");
 }
 
-// semicolons should only end a line consisting of "normal-type" tokens
+// semicolons should only terminate "normal-type" lines
+// i.e., no semicolons after a block
 TEST_F(NginxConfigParserTest, BadStatementEnd) {
   parse_fail("configs/semicolon_after_block_config");
 }
 
-// lines must end with semicolon
+// lines must end with a semicolon
 TEST_F(NginxConfigParserTest, MissingSemicolon) {
   parse_fail("configs/unterminated_nested_line_config");
   parse_fail("configs/unterminated_outer_line_config");
 }
 
+// config with extra arguments for some keyword should fail to parse
+TEST_F(NginxConfigParserTest, TooManyArgs) {
+    parse_fail("configs/too_many_args_config");
+}
+
+// config with too few arguments for some keyword should fail to parse
+TEST_F(NginxConfigParserTest, TooFewArgs) {
+    parse_fail("configs/too_few_args_config");
+}
+
+// using directive keyword to label block should cause parse to fail
+TEST_F(NginxConfigParserTest, DirectiveAsContext) {
+    parse_fail("configs/directive_as_context_config");
+}
+
+// using context keyword as directive should cause parse to fail
+TEST_F(NginxConfigParserTest, ContextAsDirective) {
+    parse_fail("configs/context_as_directive_config");
+}
+
+// config with comments at the end of some lines should parse successfully
+TEST_F(NginxConfigParserTest, Comments) {
+    parse_success(
+        "configs/comments_config",
+        "port 80;\n"
+    );
+}
 class NginxConfigTest : public testing :: Test {
   protected:
     void SetUp(const char* file_name) {
@@ -100,155 +115,131 @@ class NginxConfigTest : public testing :: Test {
       HandlerRegistration::register_handlers();
       parser.Parse(file_name, &full_parsed_config);
     }
-    void validation_success(){
-      EXPECT_TRUE(full_parsed_config.Validate());
-    }
-    void validation_failure(){
-      EXPECT_FALSE(full_parsed_config.Validate());
-    }
     void find_port_success(int expected_port){
       EXPECT_EQ(full_parsed_config.findPort(), expected_port);
     }
     void find_port_failure(){
       EXPECT_EQ(full_parsed_config.findPort(), -1);
     }
-    void find_paths_success(std::unordered_map<std::string, LocationData> expected_locations){
-      std::unordered_map<std::string, LocationData> locations = full_parsed_config.findPaths();
-      EXPECT_EQ(locations.size(), expected_locations.size()); // same number of locations
-      for(auto loc : locations){
-        EXPECT_FALSE(expected_locations.find(loc.first) == expected_locations.end()); // path exists in expected_locations
+    void find_locations_success(std::unordered_map<std::string, LocationData> expected_locations){
+      std::optional<std::unordered_map<std::string, LocationData>> locations = full_parsed_config.findLocations();
+      EXPECT_TRUE(locations.has_value());
+      EXPECT_EQ(locations.value().size(), expected_locations.size()); // same number of locations
+      for(auto loc : locations.value()){
+        EXPECT_TRUE(expected_locations.contains(loc.first)); // path exists in expected_locations
         LocationData location_to_test = expected_locations[loc.first]; // expected location with same path
         EXPECT_EQ(location_to_test.handler_, loc.second.handler_); // handlers are the same
         EXPECT_EQ(location_to_test.arg_map_.size(), loc.second.arg_map_.size()); // same number of args
         for(auto arg : loc.second.arg_map_) {
-          EXPECT_FALSE(location_to_test.arg_map_.find(arg.first) == location_to_test.arg_map_.end()); // arg exists in expected
+          EXPECT_TRUE(location_to_test.arg_map_.contains(arg.first)); // arg exists in expected
           EXPECT_EQ(location_to_test.arg_map_[arg.first], arg.second); // passed in value to arg matches expected
         }
       }
     }
-    void find_paths_failure(){
-      std::unordered_map<std::string, LocationData> locations = full_parsed_config.findPaths();
-      EXPECT_EQ(locations.size(), 0);
+    void find_locations_failure(){
+      std::optional<std::unordered_map<std::string, LocationData>> locations = full_parsed_config.findLocations();
+      EXPECT_FALSE(locations.has_value());
     }
 
   NginxConfig full_parsed_config;
   NginxConfigParser parser;
 };
 
-// the minimal config specifying only a port inside http{server{...}} should be valid
-// the minimal config specifying port 80 inside http{server{...}} should have 80 extracted as the desired port
-TEST_F(NginxConfigTest, DockerConfig) {
-  SetUp("configs/docker_config");
-  validation_success();
-  find_port_success(80);
+// empty config should parse successfully
+// but finding the port should fail
+// while finding locations should succeed and find nothing
+TEST_F(NginxConfigTest, Empty) {
+    SetUp("configs/empty_config");
+    find_port_failure();
+    find_locations_success({});
 }
 
-// the findPort step should fail for configs with no port or multiple ports specified under the 'listen' directive
-TEST_F(NginxConfigTest, IncorrectListenArgCount){
-  SetUp("configs/too_many_ports_config");
-  find_port_failure();
-  SetUp("configs/no_ports_config");
-  find_port_failure();
+// config with only a single port line should parse successfully
+// and finding the port should succeed
+TEST_F(NginxConfigTest, SinglePort) {
+    SetUp("configs/single_port_config");
+    find_port_success(80);
 }
 
-// configs with unrecognized directives should fail validation
-TEST_F(NginxConfigTest, UnrecognizedDirective){
-  SetUp("configs/example_config");
-  validation_failure();
-  SetUp("configs/port_in_main_config");
-  validation_failure();
+// config with multiple ports should parse successfully
+// but finding the port should fail
+TEST_F(NginxConfigTest, MultiplePorts) {
+    SetUp("configs/multiple_port_config");
+    find_port_failure();
 }
 
-// configs with non-unique "listen" directives should fail the findPort step
-TEST_F(NginxConfigTest, NonUniqueDirective){
-  SetUp("configs/non_unique_listen_config");
-  find_port_failure();
+// config with some distinct locations should parse successfully
+// while finding locations should succeed
+TEST_F(NginxConfigTest, GoodLocations) {
+    SetUp("configs/good_locations_config");
+    find_locations_success({
+        {"/echo", LocationData(ECHO_HANDLER, {})}, 
+        {"/static", LocationData(STATIC_HANDLER, { {"root","/etc/files"} })}
+    });
 }
 
-// if subcontext name erroneously used as directive label, validation should fail
-TEST_F(NginxConfigTest, ContextLabeledButNotPresent){
-  SetUp("configs/bad_server_line_config");
-  validation_failure();
+// trailing slashes on locations should be "ignored" for the purposes of the stored location data
+TEST_F(NginxConfigTest, TrailingSlash) {
+    SetUp("configs/trailing_slash_config");
+    find_locations_success({
+        {"/echo", LocationData(ECHO_HANDLER, {})}, 
+        {"/static", LocationData(STATIC_HANDLER, { {"root","/etc/files"} })}
+    });
 }
 
-// if port number is not a positive integer in the range 0-65535, findPort should "fail"
-TEST_F(NginxConfigTest, BadPortProvided){
-  SetUp("configs/alphabetical_port_config");
-  find_port_failure();
-  SetUp("configs/negative_port_config");
-  find_port_failure();
-  SetUp("configs/decimal_port_config");
-  find_port_failure();
-  SetUp("configs/port_too_large_config");
-  find_port_failure();
+// config with a duplicate location should parse successfully
+// but finding locations should fail
+TEST_F(NginxConfigTest, DuplicateLocations) {
+    SetUp("configs/duplicate_locations_config");
+    find_locations_failure();
 }
 
-// if a context gets arguments but doesn't require any, it should be flagged
-TEST_F(NginxConfigTest, OverlabeledHTTPConfig){
-  SetUp("configs/over_labeled_config");
-  find_port_failure();
-  find_paths_failure();
+// config with port outside range 0-65535 should parse successfully,
+// but finding port should fail
+TEST_F(NginxConfigTest, InvalidPortNumber) {
+    SetUp("configs/alphabetical_port_config");
+    find_port_failure();
+    SetUp("configs/negative_port_config");
+    find_port_failure();
+    SetUp("configs/decimal_port_config");
+    find_port_failure();
+    SetUp("configs/port_too_large_config");
+    find_port_failure();
 }
 
-// should fail to find paths in a config which doesn't specify any
-TEST_F(NginxConfigTest, NoPaths){
-  SetUp("configs/no_paths_config");
-  find_paths_failure();
+// config with invalid handler type should parse successfully,
+// but finding locations should fail
+TEST_F(NginxConfigTest, InvalidHandlerType) {
+    SetUp("configs/invalid_handler_type_config");
+    find_locations_failure();
 }
 
-// should succeed at extracting single locations in a config which specifies only 1 path
-TEST_F(NginxConfigTest, OnePath){
-  SetUp("configs/one_path_config");
-  find_paths_success({ {"/echo", LocationData(ECHO_REQUEST, {})} });
+// config with static handler taking no roots should parse successfully,
+// but finding locations should fail
+TEST_F(NginxConfigTest, StaticNoRoots) {
+    SetUp("configs/static_no_roots_config");
+    find_locations_failure();
 }
 
-// should succeed at extracting 2 locations from config which specifies 2 paths
-TEST_F(NginxConfigTest, TwoPaths){
-  SetUp("configs/two_paths_config");
-  find_port_success(80);
-  find_paths_success({ 
-    {"/echo", LocationData(ECHO_REQUEST, {})}, 
-    {"/static", LocationData(SERVE_CONTENT, { {"root","/etc/files"} })} });
+// config with echo handler taking a root should parse successfully,
+// but finding locations should fail
+TEST_F(NginxConfigTest, EchoGivenRoot) {
+    SetUp("configs/echo_given_root_config");
+    find_locations_failure();
 }
 
-// should fail if any match modifier is invalid
-TEST_F(NginxConfigTest, InvalidMatchModifier){
-  SetUp("configs/invalid_match_modifier_config");
-  find_paths_failure();
+// config with static handler taking more than one root should parse successfully,
+// but finding locations should fail
+TEST_F(NginxConfigTest, StaticMultipleRoots){
+    SetUp("configs/static_multiple_roots_config");
+    find_locations_failure();
 }
 
-// should fail if more than one server block is provided
-TEST_F(NginxConfigTest, MultipleServerBlocks){
-  SetUp("configs/multiple_server_blocks_config");
-  find_port_failure();
-  find_paths_failure();
-}
-
-// should fail if multiple behaviors are specified
-TEST_F(NginxConfigTest, AmbiguousBehavior){
-  SetUp("configs/ambiguous_behavior_config");
-  find_paths_failure();
-}
-
-// should fail if unrecognized behavior is specified
-TEST_F(NginxConfigTest, UnrecognizedBehavior){
-  SetUp("configs/undefined_behavior_config");
-  find_paths_failure();
-}
-
-// no default behavior should be specified
-TEST_F(NginxConfigTest, DefaultBehavior){
-  SetUp("configs/default_behavior_config");
-  find_paths_failure();
-}
-
-// This is due to the fact that handlers are not known ahead of time anymore
-// any badly configured locations should cause find paths to fail
-TEST_F(NginxConfigTest, BadLocations){
-  SetUp("configs/prefix_echo_with_root_config");
-  find_paths_failure();
-  SetUp("configs/echo_with_root_config");
-  find_paths_failure();
-  SetUp("too_many_roots_config");
-  find_paths_failure();
+// arguments should be allowed to be quoted
+TEST_F(NginxConfigTest, QuotedArgs){
+  SetUp("configs/quoted_args_config");
+  find_locations_success({
+        {"'/echo'", LocationData(ECHO_HANDLER, {})}, 
+        {"/static", LocationData(STATIC_HANDLER, { {"root","\"/etc/files\""} })}
+    });
 }

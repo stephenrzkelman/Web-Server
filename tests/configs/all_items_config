@@ -1,0 +1,6 @@
+port 80;
+location /echo EchoHandler{
+}
+location /static StaticHandler{
+    root /etc/files;
+}

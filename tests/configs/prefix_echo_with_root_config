@@ -1,7 +1,0 @@
-server {
-    listen 80;
-    location /echo/ {
-        behavior EchoHandler;
-        root /dev/null;
-    }
-}

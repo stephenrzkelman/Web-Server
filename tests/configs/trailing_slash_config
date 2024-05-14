@@ -1,0 +1,4 @@
+location /echo/ EchoHandler{}
+location /static/ StaticHandler{
+    root /etc/files;
+}
