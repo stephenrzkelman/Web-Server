@@ -7,7 +7,7 @@ class EchoHandler : public RequestHandler {
     public:
         EchoHandler(std::unordered_map<std::string, std::string> args);
         EchoHandler();
-        std::string handleRequest(request_data request);
+        http_response handleRequest(const http_request& request);
 };
 
 #endif // ECHO_HANDLER_H

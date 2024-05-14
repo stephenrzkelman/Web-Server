@@ -5,15 +5,15 @@ StaticHandler::StaticHandler(std::unordered_map<std::string,std::string> args)
 :root_(args["root"]){}
 
 
-std::string StaticHandler::handleRequest(
-  request_data request
+http_response StaticHandler::handleRequest(
+  const http_request& request
 ) {
   BOOST_LOG_TRIVIAL(info) << "Handling static request";
   RESPONSE_CODE status_code;
   std::string content_type;
   uintmax_t content_length = 0;
   std::string responseString;
-  std::string target_file = root_ + std::string(request.relative_path); 
+  std::string target_file = root_ + std::string(request.target()); 
   BOOST_LOG_TRIVIAL(info) << "File name requested: " << target_file;
   std::ifstream file_handler;
   FileReader file_reader = FileReader(file_handler);
@@ -46,7 +46,7 @@ std::string StaticHandler::handleRequest(
     }
   }
   content_length += responseString.size();
-  lastResponseHeader = makeHeader(status_code, content_type, content_length);
+  lastResponseHeader = makeHeader(status_code,content_type,content_length);
   lastResponse = lastResponseHeader + responseString;
-  return lastResponse;
+  return parseResponse(lastResponse);
 }

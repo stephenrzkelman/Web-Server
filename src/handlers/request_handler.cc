@@ -10,6 +10,29 @@ std::string RequestHandler::makeHeader(uint statusCode, std::string contentType,
     return responseHeader;
 }
 
+http_response RequestHandler::parseResponse(std::string response){
+    boost::system::error_code error;
+    boost::beast::http::response_parser<boost::beast::http::string_body> parser;
+    parser.body_limit(UINT32_MAX);
+    const std::string constResponse = response;
+    size_t bytes_parsed = 0;
+    do {
+        size_t position = parser.put(boost::asio::buffer(constResponse)+bytes_parsed,error);
+        bytes_parsed+=position;
+        BOOST_LOG_TRIVIAL(info) << "Is parser done? :" << parser.is_done();
+        BOOST_LOG_TRIVIAL(info) <<"Bytes parsed: " <<bytes_parsed;
+        if (parser.is_done()) {
+            return parser.get();
+        }
+        else if (error) {
+            //Basic response object given during failure
+            BOOST_LOG_TRIVIAL(info) << error.message();
+            return http_response();
+        }
+    } while (true);
+    return http_response();
+}
+
 //Return last generated response.
 std::string RequestHandler::getLastResponse() {
     return lastResponse;

@@ -17,8 +17,8 @@ class HandlerFactory {
     static RequestHandler* create(LocationData& location_data);
     //Return boolean value indicating if handler and arg combination has been registered to the factory
     static bool validate(std::string handler_name, std::unordered_map<std::string,std::string> args);
-    //Needed for when we are given request that is not a valid HTTP GET and therefore need to echo
-    static RequestHandler* createEchoHandler();
+    //Needed for when we are given request that is not a valid HTTP GET and therefore need to send a 404
+    static RequestHandler* createErrorHandler();
 
   private:
     // Mapping from handler name to handler initialization function

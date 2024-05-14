@@ -34,24 +34,16 @@ const std::unordered_map<uint, std::string> STATUS_CODE_REASONS = {
 };
 
 typedef boost::beast::http::string_body http_string_body;
-typedef boost::beast::http::fields http_fields;
-typedef boost::beast::http::message<true, http_string_body, http_fields> http_message;
-
-struct request_data {
-    boost::asio::mutable_buffer raw_request;
-    http_message* parsed_request;
-    std::string relative_path;
-    RESPONSE_CODE suggested_response_code; 
-};
+typedef boost::beast::http::field http_fields;
+typedef boost::beast::http::response<http_string_body> http_response;
+typedef boost::beast::http::request<http_string_body> http_request;
 
 
 class RequestHandler {
 
 public:
     //Pure virtual function to generate a response to a given request
-    virtual std::string handleRequest(
-        request_data request
-    ) = 0;
+    virtual http_response handleRequest(const http_request& request) = 0;
     
     //Member function to return last generated response as a string.
     std::string getLastResponse();
@@ -62,6 +54,9 @@ public:
 protected:
     //Function to formulate the response header
     std::string makeHeader(uint statusCode, std::string contentType, size_t contentLength);
+
+    //Function to create http response object from given response string
+    http_response parseResponse(std::string response);
 
     //Private member to hold last generated response header.
     std::string lastResponseHeader;

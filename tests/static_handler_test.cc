@@ -18,8 +18,8 @@ class StaticHandlerTest : public testing::Test {
     ){
         std::shared_ptr<RequestHandler> static_handler;
         static_handler.reset(new StaticHandler({ {"root", root_directory} }));
-        request_data data;
-        data.relative_path = rel_path;
+        http_request data;
+        data.target(rel_path);
         static_handler->handleRequest(data);
         EXPECT_EQ(static_handler->getLastResponse(), expected_response);
     }

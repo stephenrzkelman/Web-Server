@@ -6,7 +6,7 @@
 class StaticHandler : public RequestHandler {
     public:
         StaticHandler(std::unordered_map<std::string, std::string> args);
-        std::string handleRequest(request_data request);
+        http_response handleRequest(const http_request& request);
 
     private:
         std::string root_;

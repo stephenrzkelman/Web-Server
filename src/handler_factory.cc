@@ -1,5 +1,5 @@
 #include "handler_factory.h"
-#include "handlers/echo_handler.h"
+#include "handlers/error_handler.h"
 #include <boost/log/trivial.hpp>
 
 std::unordered_map<std::string,init_function> HandlerFactory::init_map_;
@@ -40,6 +40,6 @@ bool HandlerFactory::validate(std::string handler_name, std::unordered_map<std::
     return true;
 }
 
-RequestHandler* HandlerFactory::createEchoHandler() {
-    return new EchoHandler();
+RequestHandler* HandlerFactory::createErrorHandler() {
+    return new ErrorHandler();
 }

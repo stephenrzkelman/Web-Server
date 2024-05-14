@@ -11,55 +11,55 @@ RequestManager::RequestManager(std::unordered_map<std::string, LocationData>& lo
     locations_["/"] = LocationData("ErrorHandler",{});
   }
 
-std::string RequestManager::manageRequest(boost::asio::mutable_buffer request){
-  http_message parsed_request = parseRequest(request);
+http_response RequestManager::manageRequest(boost::asio::mutable_buffer request){
+  http_request parsed_request = parseRequest(request);
   if(isGetRequest(parsed_request)){
     BOOST_LOG_TRIVIAL(info) << "Is valid get request";
     // extract path
     std::string target_path = std::string(parsed_request.target());
+
     // Find longest matching prefix for location path
     std::tuple<std::string,std::string> split_path = matchPath(target_path);
     std::string location = std::get<0>(split_path);
     std::string relative_path = std::get<1>(split_path);
     BOOST_LOG_TRIVIAL(info) << "matched path: " << location << " rel. path: " << relative_path;
-    //retrieve data for location (handler name, args)
+
+    //Set payload content length
+    parsed_request.prepare_payload();
+
+    //retrieve data for location (handler name, ar  gs)
     LocationData location_data = locations_[location];
+
+    //create specific request handler
     std::shared_ptr<RequestHandler> handler(HandlerFactory::create(location_data));
     if (handler == nullptr) {
-      BOOST_LOG_TRIVIAL(info) << "No matching handler found, something wrong on our end, returning request";
-      request_data data;
-      data.raw_request = request;
-      data.suggested_response_code = BAD_REQUEST_STATUS;
-      std::shared_ptr<RequestHandler> handler(HandlerFactory::createEchoHandler());
-      return handler->handleRequest(data);
+      BOOST_LOG_TRIVIAL(info) << "No matching handler found, something wrong on our end, returning error";
+      handler.reset(HandlerFactory::createErrorHandler());
+      return handler->handleRequest(parsed_request);
     }
     // We have a handler for the matched location
     BOOST_LOG_TRIVIAL(info) << "Handler found: " << location_data.handler_;
-    request_data data;
-    data.raw_request = request;
-    data.parsed_request = &parsed_request;
-    data.relative_path = relative_path;
-    return handler->handleRequest(data);
+    return handler->handleRequest(parsed_request);
   } else {
     // Not a valid GET request, so just echo request
-    BOOST_LOG_TRIVIAL(info) << "Invalid get request: Proceeding to use echo handler";
-    request_data data;
-    data.raw_request = request;
-    data.suggested_response_code = BAD_REQUEST_STATUS;
-    std::shared_ptr<RequestHandler> handler(HandlerFactory::createEchoHandler());
-    return handler->handleRequest(data);
+    BOOST_LOG_TRIVIAL(info) << "Invalid get request: Proceeding to use error handler";
+    std::shared_ptr<RequestHandler> handler(HandlerFactory::createErrorHandler());
+    return handler->handleRequest(parsed_request);
   }
 }
 
-http_message RequestManager::parseRequest(boost::asio::mutable_buffer request){
+http_request RequestManager::parseRequest(boost::asio::mutable_buffer request){
   boost::system::error_code error;
   boost::beast::http::request_parser<boost::beast::http::string_body> parser;
+  parser.header_limit(UINT32_MAX);
   parser.put(request,error);
   if (!error && parser.is_done()) {
     return parser.get();
   }
   else {
-    return http_message();
+    //Basic request object returned in failure
+    BOOST_LOG_TRIVIAL(info) << error.message();
+    return http_request();
   }
 }
 
@@ -117,7 +117,7 @@ std::tuple<std::string, std::string> RequestManager::matchPath(std::string targe
   }
 }
 
-bool RequestManager::isGetRequest(http_message request){
+bool RequestManager::isGetRequest(http_request request){
   if (request.version() == 11 && request.method() == boost::beast::http::verb::get){
     return true;
   }

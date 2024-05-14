@@ -39,9 +39,11 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
             );
             return;
         }
+        std::stringstream response;
+        response << request_manager_->manageRequest(boost::asio::buffer(partialRequest));
         boost::asio::async_write(
             socket_,
-            boost::asio::buffer(request_manager_->manageRequest(boost::asio::buffer(partialRequest))),
+            boost::asio::buffer(response.str()),
             boost::bind(
                 &session::handle_write, this,
                 boost::asio::placeholders::error

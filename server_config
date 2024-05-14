@@ -3,3 +3,15 @@ location /echo EchoHandler{}
 location /static StaticHandler{
     root /usr/src/projects/fortnite-gamers/files;
 }
+location /static2 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static3 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static4 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static85 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}

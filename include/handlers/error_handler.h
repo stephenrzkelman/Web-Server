@@ -6,7 +6,8 @@
 class ErrorHandler : public RequestHandler {
     public:
         ErrorHandler(std::unordered_map<std::string, std::string> args);
-        std::string handleRequest(request_data request);
+        ErrorHandler();
+        http_response handleRequest(const http_request& request);
 };
 
 #endif // ERROR_HANDLER_H
