@@ -1,5 +1,4 @@
 #include "session.h"
-#include "handlers/echo_handler.h"
 #include <boost/bind/bind.hpp>
 
 session::session(boost::asio::io_service& io_service, std::shared_ptr<RequestManager> request_manager) 
