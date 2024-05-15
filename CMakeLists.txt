@@ -129,6 +129,5 @@ generate_coverage_report(
         echo_handler_test 
         manager_test
         static_handler_test
-        error_handler_test
         server_test
 )
