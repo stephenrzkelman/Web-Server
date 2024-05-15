@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 
 // misc
 const std::string DIGITS = "0123456789";

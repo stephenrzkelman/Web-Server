@@ -14,7 +14,6 @@
 #include "config_parser.h"
 #include "server.h"
 #include "request_manager.h"
-#include "handlers/handler_registration.h"
 #include <boost/log/trivial.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 
@@ -37,8 +36,6 @@ int main(int argc, char* argv[])
       std::cerr << "Usage: async_tcp_echo_server <config_file>\n";
       return 1;
     }
-
-    HandlerRegistration::register_handlers();
 
     boost::asio::io_service io_service;
 

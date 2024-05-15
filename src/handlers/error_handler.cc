@@ -11,3 +11,7 @@ http_response ErrorHandler::handleRequest(const http_request& request) {
     lastResponse = lastResponseHeader;
     return parseResponse(lastResponse);
 }
+
+RequestHandler* ErrorHandler::Init(std::unordered_map<std::string, std::string> args){
+    return new ErrorHandler(args);
+}

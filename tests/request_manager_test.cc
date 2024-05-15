@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "request_manager.h"
 #include "config_parser.h"
-#include "handlers/handler_registration.h"
 #include <fstream>
 
 class RequestManagerTest : public testing::Test {
@@ -9,7 +8,6 @@ class RequestManagerTest : public testing::Test {
       void SetUp(const char* config_file) {
         full_parsed_config = NginxConfig();
         parser.Parse(config_file, &full_parsed_config);
-        HandlerRegistration::register_handlers();
       }
       void manage_request_success(
         boost::asio::mutable_buffer request,

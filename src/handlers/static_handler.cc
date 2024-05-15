@@ -50,3 +50,7 @@ http_response StaticHandler::handleRequest(
   lastResponse = lastResponseHeader + responseString;
   return parseResponse(lastResponse);
 }
+
+RequestHandler* StaticHandler::Init(std::unordered_map<std::string, std::string> args){
+    return new StaticHandler(args);
+}

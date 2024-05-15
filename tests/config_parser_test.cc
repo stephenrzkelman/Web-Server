@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "config_parser.h"
 #include "location_data.h"
-#include "handlers/handler_registration.h"
 #include <string>
 #include <vector>
 
@@ -112,7 +111,6 @@ class NginxConfigTest : public testing :: Test {
   protected:
     void SetUp(const char* file_name) {
       full_parsed_config = NginxConfig();
-      HandlerRegistration::register_handlers();
       parser.Parse(file_name, &full_parsed_config);
     }
     void find_port_success(int expected_port){

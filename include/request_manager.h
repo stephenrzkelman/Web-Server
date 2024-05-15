@@ -2,7 +2,6 @@
 #define REQUEST_MANAGER_H
 
 #include "handlers/request_handler.h"
-#include "handler_factory.h"
 #include "location_data.h"
 #include <unordered_map>
 #include <vector>

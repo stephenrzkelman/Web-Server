@@ -16,7 +16,6 @@
 #include <vector>
 #include <boost/log/trivial.hpp>
 #include "config_parser.h"
-#include "handler_factory.h"
 
 NginxConfig::NginxConfig(std::string contextName)
 :contextName(contextName){}
