@@ -2,7 +2,7 @@
 #include "file_reader.h"
 
 StaticHandler::StaticHandler(std::unordered_map<std::string,std::string> args)
-:root_(args["root"]){}
+:root_(args[STATIC_HANDLER_ROOT_ARG]){}
 
 
 http_response StaticHandler::handle_request(

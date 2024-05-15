@@ -32,19 +32,19 @@ http_response RequestManager::manageRequest(boost::asio::mutable_buffer request)
     LocationData location_data = locations_[location];
     std::shared_ptr<RequestHandler> handler;
     //create specific request handler
-    if (!Registry::GetInstance().map_.contains(location_data.handler_)) {
+    if (!Registry::GetInstance().initializer_map_.contains(location_data.handler_)) {
       BOOST_LOG_TRIVIAL(info) << "No matching handler found, something wrong on our end, returning error";
-      handler.reset(Registry::GetInstance().map_["ErrorHandler"]({}));
+      handler.reset(Registry::GetInstance().initializer_map_["ErrorHandler"]({}));
       return handler->handle_request(parsed_request);
     }
     // We have a handler for the matched location
     BOOST_LOG_TRIVIAL(info) << "Handler found: " << location_data.handler_;
-    handler.reset(Registry::GetInstance().map_[location_data.handler_]({}));
+    handler.reset(Registry::GetInstance().initializer_map_[location_data.handler_]({}));
     return handler->handle_request(parsed_request);
   } else {
     // Not a valid GET request, so just echo request
     BOOST_LOG_TRIVIAL(info) << "Invalid get request: Proceeding to use error handler";
-    std::shared_ptr<RequestHandler> handler(Registry::GetInstance().map_["ErrorHandler"]({}));
+    std::shared_ptr<RequestHandler> handler(Registry::GetInstance().initializer_map_["ErrorHandler"]({}));
     return handler->handle_request(parsed_request);
   }
 }

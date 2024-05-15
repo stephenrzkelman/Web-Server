@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+const std::string ECHO_HANDLER = "EchoHandler";
+const std::string STATIC_HANDLER = "StaticHandler";
+
 class NginxConfigParserTest : public testing::Test {
   protected:
     void SetUp() override{}
@@ -237,7 +240,7 @@ TEST_F(NginxConfigTest, StaticMultipleRoots){
 TEST_F(NginxConfigTest, QuotedArgs){
   SetUp("configs/quoted_args_config");
   find_locations_success({
-        {"'/echo'", LocationData(ECHO_HANDLER, {})}, 
+        {"/echo", LocationData(ECHO_HANDLER, {})}, 
         {"/static", LocationData(STATIC_HANDLER, { {"root","\"/etc/files\""} })}
     });
 }

@@ -10,7 +10,7 @@ struct LocationData {
 
   // handler associated with this location
   std::string handler_;
-  // args given for this location in format of <string arg, string val>
+  // args given for this location in format of <string key, string val>
   std::unordered_map<std::string,std::string> arg_map_;
 
 };

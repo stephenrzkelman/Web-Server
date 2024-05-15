@@ -16,6 +16,7 @@
 #include <vector>
 #include <boost/log/trivial.hpp>
 #include "config_parser.h"
+#include "registry.h"
 
 NginxConfig::NginxConfig(std::string contextName)
 :contextName(contextName){}
@@ -292,40 +293,29 @@ std::vector<NginxConfigStatement*> NginxConfig::findDirectives(std::string direc
 }
 
 bool NginxConfig::Validate(std::string baseContextType){
-  std::queue<NginxConfig*> unprocessed_contexts;
-  BOOST_LOG_TRIVIAL(info) << "Starting Validate";
-  unprocessed_contexts.push(this);
-  while(!unprocessed_contexts.empty()){
-    NginxConfig* currentContext = unprocessed_contexts.front();
-    std::string currentContextType = currentContext->contextName;
-    unprocessed_contexts.pop();
-    for(const auto& statement : currentContext->statements_){
-      std::string statement_type = statement->tokens_[0];
-      BOOST_LOG_TRIVIAL(info) << "Validating " << statement_type;
-      if(VALID_DIRECTIVES.contains(statement_type) && 
-        VALID_PARENT_CONTEXTS.find(statement_type)->second == currentContextType){
-        NginxConfig* subcontext = statement->child_block_.get();
-        if(subcontext != nullptr){
-          return false;
-        }
-      }
-      else if(VALID_CONTEXTS.contains(statement_type) && 
-              VALID_PARENT_CONTEXTS.find(statement_type)->second == currentContextType){
-        NginxConfig* subcontext = statement->child_block_.get();
-        if (subcontext == nullptr){
-          return false;
-        }
-        unprocessed_contexts.push(subcontext);
-      }
-      else{
+  BOOST_LOG_TRIVIAL(info) << "Validating Top Level Directives";
+  for(const auto& statement : statements_){
+    std::string statement_type = statement->tokens_[0];
+    if(VALID_DIRECTIVES.contains(statement_type)){
+      NginxConfig* subcontext = statement->child_block_.get();
+      if(subcontext != nullptr){
         return false;
       }
-      // check argument count of statement
-      int num_args = statement->tokens_.size() - 1;
-      int expected_args = EXPECTED_ARG_COUNTS.find(statement->tokens_[0])->second;
-      if(num_args != expected_args){
+    }
+    else if(VALID_CONTEXTS.contains(statement_type)){
+      NginxConfig* subcontext = statement->child_block_.get();
+      if (subcontext == nullptr){
         return false;
       }
+    }
+    else{
+      return false;
+    }
+    // check argument count of statement
+    int num_args = statement->tokens_.size() - 1;
+    int expected_args = EXPECTED_ARG_COUNTS.find(statement->tokens_[0])->second;
+    if(num_args != expected_args){
+      return false;
     }
   }
   return true;
@@ -359,28 +349,23 @@ int NginxConfig::findPort(){
   return -1;
 }
 
-std::optional<std::string> NginxConfig::findRoot(){
-  if(this->contextName != LOCATION){
-    return {};
-  }
-  std::vector<NginxConfigStatement*> possible_directives = findDirectives(ROOT);
-  if(possible_directives.size() == 0){
-    return "";
-  }
-  else if(possible_directives.size() > 1){
-    return {};
-  }
-  return possible_directives[0]->tokens_[1];
-}
-
 std::optional<std::unordered_map<std::string, LocationData>> NginxConfig::findLocations(){
   if(this->contextName != MAIN){
-    return {}; // returns nullopt, to indicate some sort of failure
+    BOOST_LOG_TRIVIAL(info) << "findLocations called from context other than main";
+    return {}; 
   }
   std::unordered_map<std::string, LocationData> locations;
   std::vector<NginxConfigStatement*> location_directives = this->findDirectives(LOCATION);
   for (const auto& directive : location_directives){
     std::string path = directive->tokens_[1];
+    std::string handler = directive->tokens_[2];
+    // quoting around path string is ignored
+    if(
+      (path.front() == '"' && path.back() == '"') ||
+      (path.front() == '\'' && path.back() == '\'')
+    ) {
+      path = path.substr(1,path.size() - 2);
+    }
     // trailing '/' should be left out of saved path, for convenience when matching
     // linux treats any number of repeated '/' as a single '/'
     while(path.back() == '/'){
@@ -388,28 +373,42 @@ std::optional<std::unordered_map<std::string, LocationData>> NginxConfig::findLo
     }
     // no duplicate paths should be allowed
     if(locations.contains(path)){
+      BOOST_LOG_TRIVIAL(info) << "duplicate path detected in config";
       return {};
     }
-    std::string handler = directive->tokens_[2];
-    if(!VALID_HANDLERS.contains(handler)){
+    // provided handler must be registered
+    if(!Registry::GetInstance().initializer_map_.contains(handler)){
+      BOOST_LOG_TRIVIAL(info) << "Unregistered handler found: " << handler;
       return {};
     }
     LocationData location_data;
     location_data.handler_ = handler;
+    ArgSet expected_args = Registry::GetInstance().expected_args_map_[handler];
     NginxConfig* location_block = directive->child_block_.get();
-    if(handler == STATIC_HANDLER){
-      std::optional<std::string> root = location_block->findRoot();
-      if(!root.has_value() || root.value() == ""){
+    // gather data from inside location_block into location_data.arg_map_
+    for (auto& statement : location_block->statements_) {
+      // must provide exactly one keyword and one argument
+      if (statement->tokens_.size() != 2){
+        BOOST_LOG_TRIVIAL(info) << "Location with path " << path << " contains directive with more than 2 tokens (keyword, argument)";
         return {};
       }
-      location_data.arg_map_.insert({ROOT, root.value()});
+      std::string keyword  = statement->tokens_[0];
+      // no arguments may be provided twice
+      if(location_data.arg_map_.contains(keyword)){
+        BOOST_LOG_TRIVIAL(info) << "Location with path " << path << " contains duplicate directive " << keyword;
+        return {};
+      }
+      // only expected arguments may be provided
+      if(!expected_args.contains(keyword)){
+        BOOST_LOG_TRIVIAL(info) << "Handler " << handler << " received unrecognized directive " << keyword;
+        return {};
+      }
+      std::string value = statement->tokens_[1];
+      location_data.arg_map_.insert({keyword, value});
     }
-    else if(handler == ECHO_HANDLER){
-      std::optional<std::string> root = location_block->findRoot();
-      // verify that no root was provided
-      if(!root.has_value() || root.value() != ""){
-        return {};
-      }
+    if(expected_args.size() != location_data.arg_map_.size()){
+      BOOST_LOG_TRIVIAL(info) << "Hander " << handler << " expected " << expected_args.size() << " directive(s), received " << location_data.arg_map_.size() ;
+      return {};
     }
     locations.insert({path, location_data});
   }

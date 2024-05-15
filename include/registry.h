@@ -8,15 +8,17 @@
 #include "handlers/request_handler.h"
 
 typedef std::function<RequestHandler*(std::unordered_map<std::string,std::string>)> RequestHandlerFactory;
-
+typedef std::unordered_set<std::string> ArgSet;
 
 class Registry{
     public:
         bool RegisterHandler(
             const std::string& name,
-            RequestHandlerFactory factory
+            RequestHandlerFactory factory,
+            ArgSet& expected_arg_set
         ) {
-            map_[name] = factory;
+            initializer_map_[name] = factory;
+            expected_args_map_[name] = expected_arg_set;
             return true;
         }
 
@@ -25,13 +27,14 @@ class Registry{
             return instance;
         }
 
-        std::unordered_map<std::string, RequestHandlerFactory> map_;
+        std::unordered_map<std::string, RequestHandlerFactory> initializer_map_;
+        std::unordered_map<std::string, ArgSet> expected_args_map_;
     private:
         Registry(){};
 };
 
-#define REGISTER_HANDLER(Goober) \
-  static bool Goober##register = Registry::GetInstance().RegisterHandler(#Goober, &Goober::Init)
+#define REGISTER_HANDLER(HANDLER) \
+  static bool HANDLER##Register = Registry::GetInstance().RegisterHandler(#HANDLER, &HANDLER::Init, HANDLER::expectedArgs)
 
 
 #endif // REGISTRY_H

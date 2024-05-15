@@ -9,6 +9,7 @@ class EchoHandler : public RequestHandler {
         EchoHandler(std::unordered_map<std::string, std::string> args);
         EchoHandler();
         static RequestHandler* Init(std::unordered_map<std::string, std::string> args);
+        static inline ArgSet expectedArgs = {};
         http_response handle_request(const http_request& request);
 };
 

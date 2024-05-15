@@ -57,7 +57,13 @@ target_link_libraries(server_lib session_lib signal_lib)
 target_link_libraries(manager_lib handler_lib location_data_lib Boost::log_setup Boost::log)
 target_link_libraries(session_lib manager_lib)
 target_link_libraries(file_reader_lib Boost::system Boost::filesystem)
-target_link_libraries(config_parser_lib location_data_lib Boost::log_setup Boost::log)
+target_link_libraries(
+    config_parser_lib 
+    location_data_lib 
+    static_handler_lib
+    echo_handler_lib
+    Boost::log_setup Boost::log
+)
 
 # Add necessary links for handlers
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
@@ -81,7 +87,13 @@ target_link_libraries(
 
 # Update test executable name, srcs, and deps
 add_executable(config_parser_test tests/config_parser_test.cc)
-target_link_libraries(config_parser_test config_parser_lib gtest_main)
+target_link_libraries(
+    config_parser_test 
+    config_parser_lib 
+    static_handler_lib
+    echo_handler_lib
+    gtest_main
+)
 add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
 add_executable(server_test tests/server_test.cc)
@@ -95,6 +107,7 @@ target_link_libraries(
     config_parser_lib
     error_handler_lib
     echo_handler_lib
+    static_handler_lib
     handler_lib
     file_reader_lib 
     gtest_main
