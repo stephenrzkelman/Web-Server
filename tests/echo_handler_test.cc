@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "handlers/echo_handler.h"
 
+const std::string not_found_header = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n";
+
 class EchoHandlerTest : public testing::Test {
   protected:
     void SetUp() override{}

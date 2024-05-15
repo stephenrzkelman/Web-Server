@@ -12,6 +12,7 @@
 #include <iostream>
 #include "logging.h"
 #include "config_parser.h"
+#include "session.h"
 #include "server.h"
 #include "request_manager.h"
 #include "handlers/handler_registration.h"
