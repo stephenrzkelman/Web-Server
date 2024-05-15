@@ -80,6 +80,8 @@ add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
 add_executable(server_test tests/server_test.cc)
 target_link_libraries(server_test server_lib file_reader_lib gtest_main)
+add_executable(error_handler_test tests/error_handler_test.cc)
+target_link_libraries(error_handler_test error_handler_lib gtest_main)
 add_executable(manager_test tests/request_manager_test.cc)
 target_link_libraries(
     manager_test 
@@ -101,6 +103,7 @@ gtest_discover_tests(echo_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_
 gtest_discover_tests(manager_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(static_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(server_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(error_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 
 # Add integration test
@@ -130,4 +133,5 @@ generate_coverage_report(
         manager_test
         static_handler_test
         server_test
+        error_handler_test
 )
