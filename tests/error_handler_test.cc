@@ -27,7 +27,7 @@ class ErrorHandlerTest : public testing::Test {
       //Defined to help parse requests
       http_request data = parseRequest(request);
 
-      errorHandler->handleRequest(data);
+      errorHandler->handle_request(data);
       EXPECT_EQ(errorHandler->getLastResponse(), expected_response);
     }
 };

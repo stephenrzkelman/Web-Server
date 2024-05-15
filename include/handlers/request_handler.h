@@ -43,7 +43,7 @@ class RequestHandler {
 
 public:
     //Pure virtual function to generate a response to a given request
-    virtual http_response handleRequest(const http_request& request) = 0;
+    virtual http_response handle_request(const http_request& request) = 0;
     
     //Member function to return last generated response as a string.
     std::string getLastResponse();

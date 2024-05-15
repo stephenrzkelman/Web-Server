@@ -9,7 +9,7 @@ class ErrorHandler : public RequestHandler {
         ErrorHandler(std::unordered_map<std::string, std::string> args);
         ErrorHandler();
         static RequestHandler* Init(std::unordered_map<std::string, std::string> args);
-        http_response handleRequest(const http_request& request);
+        http_response handle_request(const http_request& request);
 };
 
 REGISTER_HANDLER(ErrorHandler);

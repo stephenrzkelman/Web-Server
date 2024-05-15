@@ -25,7 +25,7 @@ class EchoHandlerTest : public testing::Test {
       //Defined to help parse requests
       http_request data = parseRequest(request);
 
-      echoHandler->handleRequest(data);
+      echoHandler->handle_request(data);
       EXPECT_EQ(echoHandler->getLastResponse(), expected_response);
     }
 };

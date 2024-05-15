@@ -5,7 +5,7 @@ EchoHandler::EchoHandler(std::unordered_map<std::string, std::string> args){}
 EchoHandler::EchoHandler(){}
 
 //Generate a response that echoes the request. Appends the request given to the body of a predefined response through a buffer sequence. Returns buffer sequence.
-http_response EchoHandler::handleRequest(const http_request& request) {
+http_response EchoHandler::handle_request(const http_request& request) {
     // Convert the request to a string
     std::stringstream reqstream;
     reqstream << request;

@@ -20,7 +20,7 @@ class StaticHandlerTest : public testing::Test {
         static_handler.reset(new StaticHandler({ {"root", root_directory} }));
         http_request data;
         data.target(rel_path);
-        static_handler->handleRequest(data);
+        static_handler->handle_request(data);
         EXPECT_EQ(static_handler->getLastResponse(), expected_response);
     }
 };

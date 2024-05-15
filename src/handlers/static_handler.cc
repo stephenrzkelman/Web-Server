@@ -5,7 +5,7 @@ StaticHandler::StaticHandler(std::unordered_map<std::string,std::string> args)
 :root_(args["root"]){}
 
 
-http_response StaticHandler::handleRequest(
+http_response StaticHandler::handle_request(
   const http_request& request
 ) {
   BOOST_LOG_TRIVIAL(info) << "Handling static request";
