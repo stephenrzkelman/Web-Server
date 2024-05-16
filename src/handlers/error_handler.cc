@@ -1,6 +1,6 @@
 #include "handlers/error_handler.h"
 
-ErrorHandler::ErrorHandler(std::unordered_map<std::string, std::string> args){}
+ErrorHandler::ErrorHandler(std::string path, std::unordered_map<std::string, std::string> args){}
 
 ErrorHandler::ErrorHandler(){}
 
@@ -12,6 +12,6 @@ http_response ErrorHandler::handle_request(const http_request& request) {
     return parseResponse(lastResponse);
 }
 
-RequestHandler* ErrorHandler::Init(std::unordered_map<std::string, std::string> args){
-    return new ErrorHandler(args);
+RequestHandler* ErrorHandler::Init(std::string path, std::unordered_map<std::string, std::string> args){
+    return new ErrorHandler(path, args);
 }

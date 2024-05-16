@@ -1,6 +1,6 @@
 #include "handlers/echo_handler.h"
 
-EchoHandler::EchoHandler(std::unordered_map<std::string, std::string> args){}
+EchoHandler::EchoHandler(std::string path, std::unordered_map<std::string, std::string> args){}
 
 EchoHandler::EchoHandler(){}
 
@@ -15,6 +15,6 @@ http_response EchoHandler::handle_request(const http_request& request) {
     return parseResponse(lastResponse);
 }
 
-RequestHandler* EchoHandler::Init(std::unordered_map<std::string, std::string> args){
-    return new EchoHandler(args);
+RequestHandler* EchoHandler::Init(std::string path, std::unordered_map<std::string, std::string> args){
+    return new EchoHandler(path, args);
 }

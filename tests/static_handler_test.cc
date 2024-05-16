@@ -17,7 +17,7 @@ class StaticHandlerTest : public testing::Test {
         std::string expected_response
     ){
         std::shared_ptr<RequestHandler> static_handler;
-        static_handler.reset(new StaticHandler({ {"root", root_directory} }));
+        static_handler.reset(new StaticHandler("/static", { {"root", root_directory} }));
         http_request data;
         data.target(rel_path);
         static_handler->handle_request(data);
@@ -28,5 +28,5 @@ class StaticHandlerTest : public testing::Test {
 // Handler should take poor request buffer and return a buffer sequence of a bad response.
 TEST_F(StaticHandlerTest, EmptyFileRequest) {
   std::string EMPTY_OK_RESPONSE_HEADER = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n";
-  content_handle_success("/empty.txt", "../tests/files", EMPTY_OK_RESPONSE_HEADER);
+  content_handle_success("/static/empty.txt", "../tests/files", EMPTY_OK_RESPONSE_HEADER);
 }

@@ -3,6 +3,7 @@
 
 #include "handlers/request_handler.h"
 #include "location_data.h"
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -16,9 +17,11 @@ class RequestManager {
     // then, return the response from that handler
     http_response manageRequest(boost::asio::mutable_buffer request);
 
-    // split the target_path by { matched location | relative path after prefix } 
-    // Match to location with longest-common-prefix
-    std::tuple<std::string,std::string> matchPath(std::string target_path);
+    // Find longest path in prefix which is a prefix of the target path
+    // acceptable "prefix matches" are exact match (with trailing slash ignored)
+    // or prefix (with trailing slash added).
+    // If no such matching prefix is found, nullopt is returned
+    std::optional<std::string> matchPath(std::string target_path);
 
     // Member function to parse HTTP request into an object
     http_request parseRequest(boost::asio::mutable_buffer request);

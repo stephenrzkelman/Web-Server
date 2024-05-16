@@ -7,7 +7,7 @@
 
 #include "handlers/request_handler.h"
 
-typedef std::function<RequestHandler*(std::unordered_map<std::string,std::string>)> RequestHandlerFactory;
+typedef std::function<RequestHandler*(std::string, std::unordered_map<std::string,std::string>)> RequestHandlerFactory;
 typedef std::unordered_set<std::string> ArgSet;
 
 class Registry{
