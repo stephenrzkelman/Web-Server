@@ -26,33 +26,33 @@ enable_testing()
 include(GoogleTest)
 add_subdirectory(/usr/src/googletest googletest)
 
-# Enable Boost
-# Use static libraries so binaries can be deployed without a full boost install
+# Enable Boost and use static libraries so binaries can be deployed without a full boost install
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.50 REQUIRED COMPONENTS system log_setup log filesystem)
 message(STATUS "Boost version: ${Boost_VERSION}")
 
+# Add /include as an include directory 
 include_directories(include)
 
-# Add server, session and helper libraries
+# Add server, session, handler, and helper libraries
 add_library(session_lib src/session.cc)
 add_library(server_lib src/server.cc)
 add_library(handler_lib src/handlers/request_handler.cc)
 add_library(config_parser_lib src/config_parser.cc)
 add_library(location_data_lib src/location_data.cc)
-target_compile_features(config_parser_lib PUBLIC cxx_std_20)
 add_library(logging_lib src/logging.cc)
 add_library(file_reader_lib src/file_reader.cc)
 add_library(signal_lib src/signal_handler.cc)
-
-# Add handler libraries
 add_library(static_handler_lib OBJECT src/handlers/static_handler.cc)
 add_library(echo_handler_lib OBJECT src/handlers/echo_handler.cc)
 add_library(error_handler_lib OBJECT src/handlers/error_handler.cc)
-
-# Add necessary links for server, session and helpers
 add_library(manager_lib src/request_manager.cc)
+
+# Update C++ version for files that need cpp20 features like contains()
 target_compile_features(manager_lib PUBLIC cxx_std_20)
+target_compile_features(config_parser_lib PUBLIC cxx_std_20)
+
+# Add necessary links for server, session, handlers, and helpers
 target_link_libraries(server_lib session_lib signal_lib)
 target_link_libraries(manager_lib handler_lib location_data_lib Boost::log_setup Boost::log)
 target_link_libraries(session_lib manager_lib)
@@ -64,8 +64,6 @@ target_link_libraries(
     echo_handler_lib
     Boost::log_setup Boost::log
 )
-
-# Add necessary links for handlers
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
 target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::filesystem Boost::log_setup Boost::log)
 target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
@@ -94,12 +92,16 @@ target_link_libraries(
     echo_handler_lib
     gtest_main
 )
+
 add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
+
 add_executable(server_test tests/server_test.cc)
 target_link_libraries(server_test server_lib file_reader_lib gtest_main)
+
 add_executable(error_handler_test tests/error_handler_test.cc)
 target_link_libraries(error_handler_test error_handler_lib gtest_main)
+
 add_executable(manager_test tests/request_manager_test.cc)
 target_link_libraries(
     manager_test 
@@ -112,6 +114,7 @@ target_link_libraries(
     file_reader_lib 
     gtest_main
 )
+
 add_executable(static_handler_test tests/static_handler_test.cc)
 target_link_libraries(static_handler_test static_handler_lib gtest_main)
 
@@ -122,12 +125,6 @@ gtest_discover_tests(manager_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
 gtest_discover_tests(static_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(server_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(error_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-
-
-# Add integration test
-find_package(Python REQUIRED)
-add_test(NAME integ_test 
-        COMMAND python3 ../tests/integration_tests.py ../server_config ../build/bin/server)
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
@@ -151,3 +148,8 @@ generate_coverage_report(
         server_test
         error_handler_test
 )
+
+# Add integration test
+find_package(Python REQUIRED)
+add_test(NAME integ_test 
+        COMMAND python3 ../tests/integration_tests.py ../server_config ../build/bin/server)
