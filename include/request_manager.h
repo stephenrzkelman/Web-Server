@@ -24,10 +24,7 @@ class RequestManager {
     std::optional<std::string> matchPath(std::string target_path);
 
     // Member function to parse HTTP request into an object
-    http_request parseRequest(boost::asio::mutable_buffer request);
-
-    // Member function to check if HTTP message object is a GET request
-    bool isGetRequest(http_request request);
+    std::optional<http_request> parseRequest(boost::asio::mutable_buffer request);
 
     private:
       std::unordered_map<std::string, LocationData> locations_;

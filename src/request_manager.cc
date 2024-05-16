@@ -13,10 +13,10 @@ RequestManager::RequestManager(
   locations_["/"] = LocationData("ErrorHandler", {});
 }
 
-http_response
-RequestManager::manageRequest(boost::asio::mutable_buffer request) {
-  http_request parsed_request = parseRequest(request);
-  if (isGetRequest(parsed_request)) {
+http_response RequestManager::manageRequest(boost::asio::mutable_buffer request) {
+  std::optional<http_request> parsed_request_optional = parseRequest(request);
+  if (parsed_request_optional.has_value()) {
+    http_request parsed_request = parsed_request_optional.value();
     BOOST_LOG_TRIVIAL(info) << "Is valid get request";
     // extract path
     std::string target_path = std::string(parsed_request.target());
@@ -55,11 +55,11 @@ RequestManager::manageRequest(boost::asio::mutable_buffer request) {
         << "Invalid get request: Proceeding to use error handler";
     std::shared_ptr<RequestHandler> handler(
         Registry::GetInstance().initializer_map_["ErrorHandler"]("", {}));
-    return handler->handle_request(parsed_request);
+    return handler->handle_request(http_request());
   }
 }
 
-http_request RequestManager::parseRequest(boost::asio::mutable_buffer request) {
+std::optional<http_request> RequestManager::parseRequest(boost::asio::mutable_buffer request) {
   boost::system::error_code error;
   boost::beast::http::request_parser<boost::beast::http::string_body> parser;
   parser.header_limit(UINT32_MAX);
@@ -69,7 +69,7 @@ http_request RequestManager::parseRequest(boost::asio::mutable_buffer request) {
   } else {
     // Basic request object returned in failure
     BOOST_LOG_TRIVIAL(info) << error.message();
-    return http_request();
+    return {};
   }
 }
 
@@ -93,12 +93,4 @@ std::optional<std::string> RequestManager::matchPath(std::string target_path) {
   } else {
     return {};
   }
-}
-
-bool RequestManager::isGetRequest(http_request request) {
-  if (request.version() == 11 &&
-      request.method() == boost::beast::http::verb::get) {
-    return true;
-  }
-  return false;
 }
