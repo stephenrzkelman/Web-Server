@@ -1,15 +1,22 @@
-# Contributor Documentation<a id="contributor-documentation"></a>
+# Contributor Documentation
 
-## Source Code Layout<a id="source-code-layout"></a>
+## Source Code Layout
 
-\[ Dependency Graph ]
+### Dependency Graph
 
-\[ Code Flow ]
+![](https://lh7-us.googleusercontent.com/A-fN6mdJkyFPPl9GTz4_EepWTbPVGLpjK4u1xNK5KhQ-t3MoCrfCMehk26ne-sZRdjVbag6ERr_hIpqrlynITqHk-mZY3LTOrMpvv6FaqKYrqtGB8XAnZRUxoBzDyGzxsy81RYJ6_2lxJLMixN71IPU)
 
 
-## How to Build, Test, and Run the code<a id="how-to-build-test-and-run-the-code"></a>
+### Code Flow
 
-### Building:<a id="building"></a>
+The general flow is as follows: a server will begin in the main, and start running a session. The session listens for requests and passes them to the request manager. The request manager then determines what request handler to call and receive a response from. It will follow the route in reverse and send out the response from the session to the client.
+
+    server_main -> server -> session -> request_manager -> request_handler
+
+
+## How to Build, Test, and Run the code
+
+### Building:
 
 **From the base directory** of the repository, **in the dev environment**, run the following for a clean build:
 
@@ -20,7 +27,7 @@
     make
 
 
-### Testing<a id="testing"></a>
+### Testing
 
 After building, **from the build directory**, **in the dev env**, run:
 
@@ -31,7 +38,7 @@ This, together with the build step above, can be run **from the base directory**
     ./clean_build.sh
 
 
-### Coverage<a id="coverage"></a>
+### Coverage
 
 To check test coverage, go to the **base directory of the repository** **in the dev env**, and run: 
 
@@ -40,62 +47,122 @@ To check test coverage, go to the **base directory of the repository** **in the 
 The coverage results can be found in “build\_coverage/”, and you can view results in your browser via “build\_coverage/index.html”
 
 
-### CMake<a id="cmake"></a>
+### Run
 
-## Adding a Request Handler<a id="adding-a-request-handler"></a>
-
-### For the Config:<a id="for-the-config"></a>
-
-In “`include/constants.h`”:
-
-1. under “// types of request handlers”, add a `const std::string` for your new handler type. The name of this string variable can be whatever you like, but the string itself must be whatever you want to use as the 2nd argument to “`location`” in the config.
-
-2. be sure to also add this string to `VALID_HANDLERS`, in the same file.
-
-If your new handler needs a new keyword/argument (kind of like how StaticHandler needs `root`), then in “`include/constants.h`”, do the following. Otherwise, skip to step 7:
-
-3. under “// directive/context keywords”, add a `const std::string` for your new argument. The name of the string variable can be whatever you like, but the string itself must be whatever keyword will appear in the config file when specifying this argument.
-
-4. Add this string to `EXPECTED_ARG_COUNTS`, along with the number of arguments this directive should have
-
-5. Add the string to `VALID_PARENT_CONTEXTS`, along with the name of the block in which it will appear. If it doesn’t appear in a block, its parent context is `MAIN`.
-
-6. If the new keyword specifies a directive (i.e. `root <filepath>;`), then add the string to `VALID_DIRECTIVES`. Otherwise, it specifies a context (i.e. `location…{}`), and you should add it to `VALID_CONTEXTS`. 
-
-In “`src/config_parser.cc`”:
-
-7. Towards the end of `NginxConfig::findLocations()`, you’ll find\
-   `if(handler == STATIC_HANDLER)
-   ...
-   else if(handler == ECHO_HANDLER)...`
-
-Add another `else if (handler == <YOUR_NEW_HANDLER>)`
-
-8. In the body of this if statement, add handling based on how your new handler interacts with the `root` keyword. For reference, `ECHO_HANDLER` shows what should happen if a handler doesn’t want a root argument, and `STATIC_HANDLER` shows what should happen if a handler wants exactly one root argument.
-
-   1. The `findRoot()` function returns a `std::optional<std::string>`.\
-      \- If no `root` directives are found, it returns an empty string\
-      \- If exactly one `root` directive is found, it returns the specified root\
-      \- If multiple are found, it returns an empty optional
-
-If your new handler needs a new keyword/argument (i.e., if you did steps 3-6), then in “`src/config_parser.cc`”, do the following. If you skipped steps 3-6, you can skip these as well:
-
-9. You’ll want to write a new function similar to `NginxConfig::findRoot()`. 
-
-   1. Notice that `NginxConfig::findDirectives(directiveName)` can be used to find a directive, like with `findDirectives(ROOT)`, or can be used to find context labels, like with `findDirectives(LOCATION)` 
-
-10. Use your function in each of the `handler ==` cases to extract your new argument. This should be similar to how you used `findRoot()` in step 7, but you’ll be using the new function that you just wrote
-
-    1. Be sure to add this for _all_ handlers, not just your new one. This ensures that `ECHO_HANDLER` and `STATIC_HANDLER` won’t accidentally accept & ignore your new keyword, if they don’t need it. 
-
-11. Be sure to add the extracted information to `location_data.arg_map_` for your new handler. For an example, see how the `ROOT` data is added under the `STATIC_HANDLER` case
+To simulate running code on Cloud Build, navigate to fortnite-gamers and run start\_docker.sh **outside of the cs130 development environment.** Alternatively, follow the instructions in DockerREADME.md. 
 
 
-#### Example (StaticHandler):<a id="example-statichandler"></a>
+## Adding a Request Handler
 
-\[ describe how one could follow the steps to add StaticHandler, if only EchoHandler exists ]
+1. Add your newHandler.h file
+
+   a. You need to include “registry.h” along with “request\_handler.h”
+
+   b. Your handler must contain a static function of the form:
+
+        static RequestHandler* Init(std::string path, std::unordered_map<std::string, std::string> args);
+    
+    c.  Your handler must also contain this static function:
+            
+        static inline ArgSet expectedArgs = {};
+
+    d. With `NewHandler` being the name of your handler class, declare a constructor for your class of the form:
+
+        NewHandler(std::string path, std::unordered_map<std::string, std::string> args);
+
+    e. Define your handle_request function like below:
+    
+        http_response handle_request(const http_request& request);
+    
+    f. Declare all of the handler arguments (if any) as private variables
+
+    g. With `NewHandler` being the name of your handler class, you must also call the following macro after you declare your class:
+
+        REGISTER_HANDLER(NewHandler);
 
 
-### For the Factory<a id="for-the-factory"></a>
+StaticHandler.h example:
 
-\[ anywhere else stuff needs to be added ]
+    #ifndef STATIC_HANDLER_H
+    #define STATIC_HANDLER_H
+
+
+    #include "registry.h"
+    #include "request_handler.h"
+
+
+    const std::string STATIC_HANDLER_ROOT_ARG = "root";
+
+
+    class StaticHandler : public RequestHandler {
+    public:
+        StaticHandler(std::string path, std::unordered_map<std::string, std::string> args);
+        http_response handle_request(const http_request& request);
+        static RequestHandler* Init(std::string path, std::unordered_map<std::string, std::string> args);
+        static inline ArgSet expectedArgs = {STATIC_HANDLER_ROOT_ARG};
+    private:
+        std::string path_;
+        std::string root_;
+    };
+
+    REGISTER_HANDLER(StaticHandler);
+
+    #endif // STATIC_HANDLER_H
+
+2. Add your newHandler.cc file
+
+    a. You only need to include the header file for your handler along with any other classes or libraries you may have used
+
+    b. Define the constructor you declared in step 1c and have it initialize all of your handler argument variables by using the string map passed in (key is the argument name and the mapped value is the value assigned to it in the config)
+
+    c. Define the static Init function you declared in step 1b and have it simply return a new object of your handler type
+
+StaticHandler.cc example:
+
+    #include "handlers/static_handler.h"
+    #include "file_reader.h"
+
+
+    StaticHandler::StaticHandler(std::string path, std::unordered_map<std::string,std::string> args)
+    :path_(path), root_(args[STATIC_HANDLER_ROOT_ARG]){}
+
+
+    http_response StaticHandler::handle_request(const http_request& request) {
+      ...
+    }
+
+    RequestHandler* StaticHandler::Init(std::string path, std::unordered_map<std::string, std::string> args){
+        return new StaticHandler(path, args);
+    }
+
+
+3. Modify CMakeLists.txt
+
+    a. Add handler library with add\_library under the comment “#Add server, session, handler, and helper libraries”
+
+        add_library(static_handler_lib OBJECT src/handlers/static_handler.cc)
+
+    b. Use target\_link\_libraries to add any needed includes under the comment “# Add necessary links for server, session, handlers, and helpers” 
+
+        target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::filesystem Boost::log_setup Boost::log)
+
+    c. Link handler library to server under "# add server executable"
+    
+        add_executable(server src/server_main.cc)
+        target_link_libraries(
+            server 
+            config_parser_lib 
+            error_handler_lib
+            echo_handler_lib
+            static_handler_lib
+            session_lib 
+            server_lib 
+            manager_lib 
+            logging_lib 
+            Boost::system
+        )
+
+    d. Create an executable for the test file with add\_executable and target\_link\_libraries under the comment “# Update test executable name, srcs, and deps”
+
+        add_executable(static_handler_test tests/static_handler_test.cc)
+        target_link_libraries(static_handler_test static_handler_lib gtest_main)
