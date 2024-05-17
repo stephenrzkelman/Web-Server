@@ -19,6 +19,7 @@ FROM ubuntu:jammy as deploy
 COPY --from=builder /usr/src/project/build/bin/server .
 COPY --from=builder /usr/src/project/server_config .
 COPY --from=builder /usr/src/project/files /usr/src/projects/fortnite-gamers/files
+COPY --from=builder /usr/src/project/crud_files /usr/src/projects/fortnite-gamers/crud_files
 EXPOSE 8080
 
 # Use ENTRYPOINT to specify the binary name
