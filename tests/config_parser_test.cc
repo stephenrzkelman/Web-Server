@@ -246,5 +246,5 @@ TEST_F(NginxConfigTest, QuotedArgs) {
   find_locations_success(
       {{"/echo", LocationData(ECHO_HANDLER, {})},
        {"/static",
-        LocationData(STATIC_HANDLER, {{"root", "\"/etc/files\""}})}});
+        LocationData(STATIC_HANDLER, {{"root", "/etc/files"}})}});
 }

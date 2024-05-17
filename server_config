@@ -15,3 +15,6 @@ location /static4 StaticHandler{
 location /static85 StaticHandler{
     root /usr/src/projects/fortnite-gamers/files;
 }
+location /static1234 StaticHandler{
+    root '/usr/src/projects/fortnite-gamers/files/static attic';
+}

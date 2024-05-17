@@ -42,6 +42,11 @@ class NginxConfig {
   // if no specified port exists in the expected location (inside server{...}), 
   // or the port value specified is invalid (negative, non-integer, contains letters, etc), return -1
   int findPort();
+  // For directive arguments that may be provided in quotes, in order to contain spaces.
+  // If `arg` starts and ends with matching single or double quotes, this function
+  // removes those quotes, and returns the rest of the string.
+  // If no such matching surrounding quotes are present, it just returns `arg` as-is
+  std::string unquoteArg(std::string arg);
   // to be called from main context
   // searches for "location" blocks and extracts path, handler, and root information from them
   // if succesful, returns map from path strings to LocationData

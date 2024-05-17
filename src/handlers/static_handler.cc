@@ -11,22 +11,12 @@ http_response StaticHandler::handle_request(const http_request &request) {
   std::string content_type;
   uintmax_t content_length = 0;
   std::string responseString;
-  // if root is quoted, we need to quote the full final path
-  bool quoted_path = ((root_.front() == '"' && root_.back() == '"') ||
-                      (root_.front() == '\'' && root_.back() == '\''));
-  std::string root_prefix = root_;
-  if (quoted_path) {
-    root_prefix = root_prefix.substr(1, root_.size() - 2);
-  }
   std::string target_suffix =
       std::string(request.target()).substr(path_.size());
-  std::string target_file = root_prefix + target_suffix;
+  std::string target_file = root_ + target_suffix;
   std::ifstream file_handler;
   FileReader file_reader = FileReader(file_handler);
   FILE_TYPE file_type = file_reader.fileType(target_file);
-  if (quoted_path) {
-    target_file = "'" + target_file + "'";
-  }
   BOOST_LOG_TRIVIAL(info) << "File requested: " << target_file;
   bool successful_read = file_reader.readFile(target_file, responseString);
   if (file_type == NO_MATCHING_TYPE || !successful_read) {

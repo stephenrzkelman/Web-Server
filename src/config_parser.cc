@@ -347,6 +347,15 @@ int NginxConfig::findPort() {
   return -1;
 }
 
+std::string NginxConfig::unquoteArg(std::string arg){
+  std::string unquoted = arg;
+  if ((unquoted.front() == '"' && unquoted.back() == '"') ||
+      (unquoted.front() == '\'' && unquoted.back() == '\'')) {
+    unquoted = unquoted.substr(1, unquoted.size() - 2);
+  }
+  return unquoted;
+}
+
 std::optional<std::unordered_map<std::string, LocationData>>
 NginxConfig::findLocations() {
   if (this->contextName != MAIN) {
@@ -361,10 +370,7 @@ NginxConfig::findLocations() {
     std::string path = directive->tokens_[1];
     std::string handler = directive->tokens_[2];
     // quoting around path string is ignored
-    if ((path.front() == '"' && path.back() == '"') ||
-        (path.front() == '\'' && path.back() == '\'')) {
-      path = path.substr(1, path.size() - 2);
-    }
+    path = unquoteArg(path);
     // trailing '/' should be left out of saved path, for convenience when
     // matching linux treats any number of repeated '/' as a single '/'
     while (path.back() == '/') {
@@ -407,7 +413,7 @@ NginxConfig::findLocations() {
             << keyword;
         return {};
       }
-      std::string value = statement->tokens_[1];
+      std::string value = unquoteArg(statement->tokens_[1]);
       location_data.arg_map_.insert({keyword, value});
     }
     if (expected_args.size() != location_data.arg_map_.size()) {
