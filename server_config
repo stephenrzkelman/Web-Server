@@ -18,7 +18,3 @@ location /static85 StaticHandler{
 location /static1234 StaticHandler{
     root '/usr/src/projects/fortnite-gamers/files/static attic';
 }
-location /api CrudHandler{
-    # TODO: change as needed
-    data_path /usr/src/projects/fortnite-gamers/crud_files;
-}

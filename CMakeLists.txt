@@ -47,7 +47,6 @@ add_library(static_handler_lib OBJECT src/handlers/static_handler.cc)
 add_library(echo_handler_lib OBJECT src/handlers/echo_handler.cc)
 add_library(error_handler_lib OBJECT src/handlers/error_handler.cc)
 add_library(manager_lib src/request_manager.cc)
-add_library(crud_handler_lib OBJECT src/handlers/crud_handler.cc)
 
 # Update C++ version for files that need cpp20 features like contains()
 target_compile_features(manager_lib PUBLIC cxx_std_20)
@@ -62,14 +61,12 @@ target_link_libraries(
     config_parser_lib 
     location_data_lib 
     static_handler_lib
-    crud_handler_lib
     echo_handler_lib
     Boost::log_setup Boost::log
 )
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
 target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::filesystem Boost::log_setup Boost::log)
 target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
-target_link_libraries(crud_handler_lib handler_lib Boost::filesystem Boost::log_setup Boost::log)
 
 # add server executable
 add_executable(server src/server_main.cc)
@@ -79,7 +76,6 @@ target_link_libraries(
     error_handler_lib
     echo_handler_lib
     static_handler_lib
-    crud_handler_lib
     session_lib 
     server_lib 
     manager_lib 
@@ -93,7 +89,6 @@ target_link_libraries(
     config_parser_test 
     config_parser_lib 
     static_handler_lib
-    crud_handler_lib
     echo_handler_lib
     gtest_main
 )
@@ -115,7 +110,6 @@ target_link_libraries(
     error_handler_lib
     echo_handler_lib
     static_handler_lib
-    crud_handler_lib
     handler_lib
     file_reader_lib 
     gtest_main
@@ -140,7 +134,6 @@ generate_coverage_report(
         config_parser_lib 
         session_lib server_lib 
         static_handler_lib
-        crud_handler_lib
         echo_handler_lib 
         error_handler_lib
         file_reader_lib
