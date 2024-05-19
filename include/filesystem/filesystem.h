@@ -16,6 +16,7 @@ public:
   bool write(const std::filesystem::path &filename,
              const std::string &data) override;
   bool remove(const std::filesystem::path &path) override;
+  bool is_directory(const std::filesystem::path &path) const override;
 
 private:
   // Some helper methods to help in performing error checking, otherwise the
@@ -24,7 +25,6 @@ private:
   // If the path doesn't exist, these will return false as well
   // We wish to read from regular files because fstream doesn't resolve symlinks
   bool is_regular_file(const std::filesystem::path &path) const;
-  bool is_directory(const std::filesystem::path &path) const;
 };
 
 #endif // FILESYSTEM_H

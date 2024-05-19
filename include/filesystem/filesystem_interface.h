@@ -25,6 +25,8 @@ public:
   // Pure virtual function to remove a file
   // Returns whether or not the removal happened successfully
   virtual bool remove(const std::filesystem::path &filename) = 0;
+  // Pure virtual function to check if a path is a directory
+  virtual bool is_directory(const std::filesystem::path &path) const = 0;
 };
 
 #endif // FILESYSTEM_INTERFACE_H

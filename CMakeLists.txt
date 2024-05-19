@@ -70,7 +70,7 @@ target_link_libraries(
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
 target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::filesystem Boost::log_setup Boost::log)
 target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
-target_link_libraries(crud_handler_lib handler_lib Boost::filesystem Boost::log_setup Boost::log)
+target_link_libraries(crud_handler_lib handler_lib filesystem_lib Boost::filesystem Boost::log_setup Boost::log)
 
 # add server executable
 add_executable(server src/server_main.cc)
@@ -109,9 +109,9 @@ target_link_libraries(server_test server_lib file_reader_lib gtest_main)
 add_executable(error_handler_test tests/error_handler_test.cc)
 target_link_libraries(error_handler_test error_handler_lib gtest_main)
 
-add_executable(filesystem_test tests/filesystem_test.cc)
-target_compile_features(filesystem_test PUBLIC cxx_std_20)
-target_link_libraries(filesystem_test gtest_main)
+add_executable(crud_handler_test tests/crud_handler_test.cc)
+target_compile_features(crud_handler_test PUBLIC cxx_std_20)
+target_link_libraries(crud_handler_test crud_handler_lib gtest_main)
 
 add_executable(manager_test tests/request_manager_test.cc)
 target_link_libraries(
@@ -137,7 +137,7 @@ gtest_discover_tests(manager_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
 gtest_discover_tests(static_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(server_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(error_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-gtest_discover_tests(filesystem_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(crud_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
@@ -161,7 +161,7 @@ generate_coverage_report(
         static_handler_test
         server_test
         error_handler_test
-        filesystem_test
+        crud_handler_test 
 )
 
 # Add integration test
