@@ -204,3 +204,73 @@ TEST_F(CrudHandlerTest, GetDirectory) {
             boost::beast::http::status::internal_server_error);
   EXPECT_EQ(response.body(), "");
 }
+
+// Generate some IDs, then read them
+TEST_F(CrudHandlerTest, PostGet) {
+  std::unique_ptr<FileSystemInterface> filesystem =
+      std::make_unique<FakeFileSystem>();
+
+  filesystem->write("/mnt/crud/Shoes/foo/bar/baz",
+                    "nested files should be ignored");
+  filesystem->write("/mnt/crud/Shoes/qux",
+                    "non-numeric files should get ignored");
+
+  CrudHandler handler("/api", {{"data_path", "/mnt/crud"}},
+                      std::move(filesystem));
+
+  const std::string body1 = "This is the first write!";
+  http_request ok_request1;
+  ok_request1.method(boost::beast::http::verb::post);
+  ok_request1.target("/api/Shoes/");
+  ok_request1.body() = body1;
+
+  http_response response1 = handler.handle_request(ok_request1);
+  EXPECT_EQ(response1.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response1.at(boost::beast::http::field::content_type),
+            "text/plain");
+  EXPECT_EQ(response1.body(), "{\n"
+                              "    \"id\": \"1\"\n"
+                              "}\n");
+
+  const std::string body2 = "Another write";
+  http_request ok_request2;
+  ok_request2.method(boost::beast::http::verb::post);
+  ok_request2.target("/api/Shoes/");
+  ok_request2.body() = body2;
+
+  http_response response2 = handler.handle_request(ok_request2);
+  EXPECT_EQ(response2.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response2.at(boost::beast::http::field::content_type),
+            "text/plain");
+  EXPECT_EQ(response2.body(), "{\n"
+                              "    \"id\": \"2\"\n"
+                              "}\n");
+
+  http_request ok_request3;
+  ok_request3.method(boost::beast::http::verb::get);
+  ok_request3.target("/api/Shoes/1");
+
+  http_response response3 = handler.handle_request(ok_request3);
+  EXPECT_EQ(response3.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response3.at(boost::beast::http::field::content_type),
+            "text/plain");
+  EXPECT_EQ(response3.body(), body1);
+
+  http_request ok_request4;
+  ok_request4.method(boost::beast::http::verb::get);
+  ok_request4.target("/api/Shoes/2");
+
+  http_response response4 = handler.handle_request(ok_request4);
+  EXPECT_EQ(response4.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response4.at(boost::beast::http::field::content_type),
+            "text/plain");
+  EXPECT_EQ(response4.body(), body2);
+
+  // Can't POST to a file
+  http_request bad_request;
+  bad_request.method(boost::beast::http::verb::post);
+  bad_request.target("/api/Shoes/3");
+  http_response bad_response = handler.handle_request(bad_request);
+  EXPECT_EQ(bad_response.result(), boost::beast::http::status::bad_request);
+  EXPECT_EQ(bad_response.body(), "");
+}

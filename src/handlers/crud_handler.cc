@@ -29,8 +29,7 @@ http_response CrudHandler::handle_request(const http_request &request) {
   if (request.method() == boost::beast::http::verb::get) {
     return handle_get(target);
   } else if (request.method() == boost::beast::http::verb::post) {
-    // TODO: Implement this
-    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    return handle_post(target, request.body());
   } else if (request.method() == boost::beast::http::verb::delete_) {
     // TODO: Implement this
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
@@ -59,12 +58,56 @@ http_response CrudHandler::handle_get(const fs::path &path) {
   const std::optional<std::string> body_opt = filesystem_->read(path);
   if (!body_opt.has_value()) {
     BOOST_LOG_TRIVIAL(debug)
-        << "CRUD handler failed to read file at path " << path;
+        << "CRUD[GET]: failed to read file at path " << path;
     return parseResponse(
         makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
 
   const std::string body = body_opt.value();
+  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
+  return parseResponse(header + body);
+}
+
+http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
+  if (!filesystem_->is_directory(path)) {
+    BOOST_LOG_TRIVIAL(warning)
+        << "CRUD[POST]: cannot POST to a file; path: " << path;
+    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+
+  const std::optional<std::vector<fs::path>> files_opt =
+      filesystem_->list(path);
+  if (!files_opt.has_value()) {
+    BOOST_LOG_TRIVIAL(debug)
+        << "CRUD[POST]: failed to list files at path: " << path;
+    return parseResponse(
+        makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
+  }
+
+  // Get maximal ID in the path
+  int maxID = 0;
+  for (const auto &filepath : files_opt.value()) {
+    const std::string filename = filepath.filename().string();
+    try {
+      maxID = std::max(maxID, std::stoi(filename));
+    } catch (const std::exception &e) {
+      // Skip over non-numeric filenames
+      BOOST_LOG_TRIVIAL(warning)
+          << "CRUD[POST]: non-numeric filename found: " << filename
+          << "; skipping";
+      continue;
+    }
+  }
+
+  // Increment ID, and make a new file in the path with new ID
+  filesystem_->write(path / std::to_string(maxID + 1), data);
+  // Create JSON containing new ID, serialize into string, and return it
+  pt::ptree root, id;
+  root.put("id", maxID + 1);
+  std::stringstream ss;
+  pt::write_json(ss, root);
+
+  const std::string body = ss.str();
   const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
   return parseResponse(header + body);
 }
