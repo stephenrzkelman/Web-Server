@@ -31,8 +31,7 @@ http_response CrudHandler::handle_request(const http_request &request) {
   } else if (request.method() == boost::beast::http::verb::post) {
     return handle_post(target, request.body());
   } else if (request.method() == boost::beast::http::verb::delete_) {
-    // TODO: Implement this
-    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    return handle_delete(target);
   } else if (request.method() == boost::beast::http::verb::put) {
     // TODO: Implement this
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
@@ -81,9 +80,8 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
     BOOST_LOG_TRIVIAL(debug)
         << "CRUD[POST]: failed to list files at path: " << path;
     return parseResponse(
-        makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
+      makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
-
   // Get maximal ID in the path
   int maxID = 0;
   for (const auto &filepath : files_opt.value()) {
@@ -110,6 +108,30 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
   const std::string body = ss.str();
   const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
   return parseResponse(header + body);
+}
+  
+http_response CrudHandler::handle_delete(const fs::path &path) {
+  if(filesystem_->is_directory(path)) {
+    BOOST_LOG_TRIVIAL(warning) << "CRUD[DELETE]: request target " << path << " is not a valid path element";
+    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+  
+  if(!filesystem_->exists(path)) {
+    // bad request error, file DNE
+    return parseResponse(
+        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+
+  if(!filesystem_->remove(path)){
+    // internal server error, couldn't remove
+    return parseResponse(
+        makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
+  }
+
+  // log successful removal
+  BOOST_LOG_TRIVIAL(info) << "successfully removed entity at " << path;
+  return parseResponse(
+        makeHeader(OK_STATUS, TEXT_PLAIN, 0));
 }
 
 http_response CrudHandler::list(const fs::path &path) {

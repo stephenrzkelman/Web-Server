@@ -274,3 +274,64 @@ TEST_F(CrudHandlerTest, PostGet) {
   EXPECT_EQ(bad_response.result(), boost::beast::http::status::bad_request);
   EXPECT_EQ(bad_response.body(), "");
 }
+
+// Try deleting files that are there and aren't there
+TEST_F(CrudHandlerTest, DeleteFile) {
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+
+  const std::string body = "File to be deleted";
+  const std::string file_path = "/mnt/crud/Shoes/1";
+
+  // 1: Write the file to the fake filesystem
+  filesystem->write(file_path, body);
+
+  // 2: Create the CrudHandler and make a DELETE request
+  CrudHandler handler("/api", {{"data_path", "/mnt/crud"}}, std::move(filesystem));
+
+  http_request delete_request;
+  delete_request.method(boost::beast::http::verb::delete_);
+  delete_request.target("/api/Shoes/1");
+  http_response response = handler.handle_request(delete_request);
+
+  // 3: Verify that the file is deleted successfully
+  EXPECT_EQ(response.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response.body(), "");
+
+  // 4: Confirm that the file no longer exists in the filesystem
+  http_request get_request;
+  get_request.method(boost::beast::http::verb::get);
+  get_request.target("/api/Shoes/1");
+  http_response get_response = handler.handle_request(get_request);
+  EXPECT_EQ(get_response.result(), boost::beast::http::status::internal_server_error);
+
+  // Delete something that isn't there
+  http_request bad_del_request;
+  bad_del_request.method(boost::beast::http::verb::delete_);
+  bad_del_request.target("/api/Shoes/1");
+  http_response bad_del_response = handler.handle_request(bad_del_request);
+
+  EXPECT_EQ(bad_del_response.result(), boost::beast::http::status::bad_request);
+  EXPECT_EQ(bad_del_response.body(), "");
+}
+
+// attempt to delete directory (that's not allowed)
+TEST_F(CrudHandlerTest, DeleteDirectory) {
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+
+  const std::string body = "File to be deleted";
+  const std::string file_path = "/mnt/crud/Shoes/1";
+
+  // 1: Write the file to the fake filesystem
+  filesystem->write(file_path, body);
+
+  // 2: Create the CrudHandler and make a DELETE request
+  CrudHandler handler("/api", {{"data_path", "/mnt/crud"}}, std::move(filesystem));
+
+  http_request delete_request;
+  delete_request.method(boost::beast::http::verb::delete_);
+  delete_request.target("/api/Shoes/");
+  http_response response = handler.handle_request(delete_request);
+
+  EXPECT_EQ(response.result(), boost::beast::http::status::bad_request);
+  EXPECT_EQ(response.body(), "");
+}
