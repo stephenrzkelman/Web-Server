@@ -33,8 +33,7 @@ http_response CrudHandler::handle_request(const http_request &request) {
   } else if (request.method() == boost::beast::http::verb::delete_) {
     return handle_delete(target);
   } else if (request.method() == boost::beast::http::verb::put) {
-    // TODO: Implement this
-    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    return handle_put(target, request.body());
   }
 
   // Unimplemented functionality, return 400
@@ -132,6 +131,23 @@ http_response CrudHandler::handle_delete(const fs::path &path) {
   BOOST_LOG_TRIVIAL(info) << "successfully removed entity at " << path;
   return parseResponse(
         makeHeader(OK_STATUS, TEXT_PLAIN, 0));
+}
+
+http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
+  // check if is directory
+  if (filesystem_->is_directory(path)) {
+    BOOST_LOG_TRIVIAL(warning)
+        << "CRUD[PUT]: cannot PUT to a directory; path: " << path;
+    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+
+  // write new body    
+  filesystem_->write(path, data);
+
+  // 200 is OK as response for PUT (check RFC for detail)
+  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, 0);
+  return parseResponse(header);
+
 }
 
 http_response CrudHandler::list(const fs::path &path) {

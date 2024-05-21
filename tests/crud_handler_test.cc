@@ -335,3 +335,99 @@ TEST_F(CrudHandlerTest, DeleteDirectory) {
   EXPECT_EQ(response.result(), boost::beast::http::status::bad_request);
   EXPECT_EQ(response.body(), "");
 }
+
+TEST_F(CrudHandlerTest, PutSuccess) {
+  std::unique_ptr<FileSystemInterface> filesystem =
+      std::make_unique<FakeFileSystem>();
+  // define some dummy vals
+  filesystem->write("/mnt/crud/Shoes/2", "");
+  filesystem->write("/mnt/crud/Shoes/1", "");
+  filesystem->write("/mnt/crud/Shoes/3", "");
+
+  // define handler
+    CrudHandler handler("/api", {{"data_path", "/mnt/crud"}},
+                        std::move(filesystem));
+  // bodies
+  const std::string body = "ID 1 NEW";
+
+  // make request
+  http_request ok_request;
+  ok_request.method(boost::beast::http::verb::put);
+  ok_request.target("/api/Shoes/1");
+  ok_request.body() = body;
+  http_response response = handler.handle_request(ok_request);
+
+  // read request
+  EXPECT_EQ(response.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "text/plain");
+
+  // check conctents
+  http_request get_request;
+  get_request.method(boost::beast::http::verb::get);
+  get_request.target("/api/Shoes/1");
+  http_response response_get = handler.handle_request(get_request);
+  EXPECT_EQ(response_get.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response_get.at(boost::beast::http::field::content_type),
+            "text/plain");
+  EXPECT_EQ(response_get.body(), body);
+}
+
+TEST_F(CrudHandlerTest, PutFailureDirectory) {
+  std::unique_ptr<FileSystemInterface> filesystem =
+      std::make_unique<FakeFileSystem>();
+  // define some dummy vals
+  filesystem->write("/mnt/crud/Shoes/2", "");
+  filesystem->write("/mnt/crud/Shoes/1", "");
+  filesystem->write("/mnt/crud/Shoes/3", "");
+
+  // define handler
+  CrudHandler handler("/api", {{"data_path", "/mnt/crud"}},
+                      std::move(filesystem));
+
+  // make request
+  http_request ok_request;
+  ok_request.method(boost::beast::http::verb::put);
+  ok_request.target("/api/Shoes");
+  ok_request.body() = "ID 1 NEW";
+  http_response response = handler.handle_request(ok_request);
+
+  // read request
+  EXPECT_EQ(response.result(), boost::beast::http::status::bad_request);
+}
+
+TEST_F(CrudHandlerTest, PutSuccessNoFile) {
+  std::unique_ptr<FileSystemInterface> filesystem =
+      std::make_unique<FakeFileSystem>();
+  // define some dummy vals
+  filesystem->write("/mnt/crud/Shoes/2", "");
+  filesystem->write("/mnt/crud/Shoes/1", "");
+  filesystem->write("/mnt/crud/Shoes/3", "");
+
+  // define handler
+  CrudHandler handler("/api", {{"data_path", "/mnt/crud"}},
+                      std::move(filesystem));
+
+  // bodies
+  const std::string body = "ID 4 NEW";
+
+  // make request
+  http_request ok_request;
+  ok_request.method(boost::beast::http::verb::put);
+  ok_request.target("/api/Shoes/4");
+  ok_request.body() = body;
+  http_response response = handler.handle_request(ok_request);
+
+  // read request
+  EXPECT_EQ(response.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "text/plain");
+
+  http_request get_request;
+  get_request.method(boost::beast::http::verb::get);
+  get_request.target("/api/Shoes/4");
+  http_response response_get = handler.handle_request(get_request);
+  EXPECT_EQ(response_get.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response_get.at(boost::beast::http::field::content_type),
+            "text/plain");
+  EXPECT_EQ(response_get.body(), body);
+
+}
