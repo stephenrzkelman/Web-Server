@@ -27,6 +27,8 @@ public:
   virtual bool remove(const std::filesystem::path &filename) = 0;
   // Pure virtual function to check if a path is a directory
   virtual bool is_directory(const std::filesystem::path &path) const = 0;
+  // Pure virtual function to create directories
+  virtual bool create_directories(const std::filesystem::path &path) = 0;
 };
 
 #endif // FILESYSTEM_INTERFACE_H

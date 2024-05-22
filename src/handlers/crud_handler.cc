@@ -69,9 +69,27 @@ http_response CrudHandler::handle_get(const fs::path &path) {
 }
 
 http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
-  if (!filesystem_->is_directory(path)) {
+  const fs::path data_path{data_path_};
+
+  // Remove trailing slash from the path
+  std::string normal_path = path.string();
+  if (!normal_path.empty() && normal_path.back() == '/') {
+    normal_path.pop_back();
+  }
+  const fs::path normal_fs_path{normal_path};
+
+  const auto data_path_len = std::distance(data_path.begin(), data_path.end());
+  const auto path_len =
+      std::distance(normal_fs_path.begin(), normal_fs_path.end());
+  // If the target is more than one component, it's a bad request
+  if (data_path_len + 1 != path_len) {
     BOOST_LOG_TRIVIAL(warning)
-        << "CRUD[POST]: cannot POST to a file; path: " << path;
+        << "CRUD[POST]: POST path " << path << " should have only one element ";
+    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+  if (!filesystem_->create_directories(path)) {
+    BOOST_LOG_TRIVIAL(warning)
+        << "CRUD[POST]: failing to create directories at path: " << path;
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
 
@@ -81,7 +99,7 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
     BOOST_LOG_TRIVIAL(debug)
         << "CRUD[POST]: failed to list files at path: " << path;
     return parseResponse(
-      makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
+        makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
   // Get maximal ID in the path
   int maxID = 0;
@@ -110,32 +128,33 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
   const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
   return parseResponse(header + body);
 }
-  
+
 http_response CrudHandler::handle_delete(const fs::path &path) {
   // no specific ID given
-  if(filesystem_->is_directory(path)) {
-    BOOST_LOG_TRIVIAL(warning) << "CRUD[DELETE]: request target " << path << " is not a valid path element";
+  if (filesystem_->is_directory(path)) {
+    BOOST_LOG_TRIVIAL(warning) << "CRUD[DELETE]: request target " << path
+                               << " is not a valid path element";
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
-  
+
   // file DNE
-  if(!filesystem_->exists(path)) {
-    BOOST_LOG_TRIVIAL(debug) << "CRUD[DELETE]: file at " << path << " does not exist";
-    return parseResponse(
-        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  if (!filesystem_->exists(path)) {
+    BOOST_LOG_TRIVIAL(debug)
+        << "CRUD[DELETE]: file at " << path << " does not exist";
+    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
 
   // couldn't remove
-  if(!filesystem_->remove(path)){
-    BOOST_LOG_TRIVIAL(debug) << "CRUD[DELETE]: couldn't remove file at " << path;
+  if (!filesystem_->remove(path)) {
+    BOOST_LOG_TRIVIAL(debug)
+        << "CRUD[DELETE]: couldn't remove file at " << path;
     return parseResponse(
         makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
 
   // successful removal
   BOOST_LOG_TRIVIAL(info) << "successfully removed entity at " << path;
-  return parseResponse(
-        makeHeader(OK_STATUS, TEXT_PLAIN, 0));
+  return parseResponse(makeHeader(OK_STATUS, TEXT_PLAIN, 0));
 }
 
 http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
@@ -146,7 +165,7 @@ http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
 
-  // write new body    
+  // write new body
   filesystem_->write(path, data);
 
   // 200 is OK as response for PUT (check RFC for detail)

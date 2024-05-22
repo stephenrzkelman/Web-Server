@@ -17,6 +17,7 @@ public:
              const std::string &data) override;
   bool remove(const std::filesystem::path &path) override;
   bool is_directory(const std::filesystem::path &path) const override;
+  bool create_directories(const std::filesystem::path &path) override;
 
 private:
   // Some helper methods to help in performing error checking, otherwise the

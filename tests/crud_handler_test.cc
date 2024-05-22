@@ -11,10 +11,6 @@ public:
   }
   std::optional<std::vector<std::filesystem::path>>
   list(const std::filesystem::path &directory) const override {
-    // Return std::nullopt for files
-    if (directory.has_filename()) {
-      return std::nullopt;
-    }
     std::vector<std::filesystem::path> files;
     for (const auto &[path_, _] : filesystem_) {
       // Add the path to our list of files if the directory is a prefix for it
@@ -68,6 +64,9 @@ public:
       }
     }
     return false;
+  }
+  bool create_directories(const std::filesystem::path &path) override {
+    return true;
   }
 
 private:

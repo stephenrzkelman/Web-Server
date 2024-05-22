@@ -114,3 +114,14 @@ bool FileSystem::is_directory(const fs::path &path) const {
   }
   return is_directory;
 }
+
+bool FileSystem::create_directories(const fs::path &path) {
+  std::error_code ec;
+  bool created = fs::create_directories(path, ec);
+  if (ec) {
+    BOOST_LOG_TRIVIAL(debug)
+        << "failed to create directories at " << path << " because " << ec;
+    return false;
+  }
+  return true;
+}
