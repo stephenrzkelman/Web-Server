@@ -49,10 +49,12 @@ CrudHandler::Init(std::string path,
 }
 
 http_response CrudHandler::handle_get(const fs::path &path) {
+  // for List (no ID given)
   if (filesystem_->is_directory(path)) {
     return list(path);
   }
 
+  // for ID specific retrieval
   const std::optional<std::string> body_opt = filesystem_->read(path);
   if (!body_opt.has_value()) {
     BOOST_LOG_TRIVIAL(debug)
@@ -110,24 +112,27 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
 }
   
 http_response CrudHandler::handle_delete(const fs::path &path) {
+  // no specific ID given
   if(filesystem_->is_directory(path)) {
     BOOST_LOG_TRIVIAL(warning) << "CRUD[DELETE]: request target " << path << " is not a valid path element";
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
   
+  // file DNE
   if(!filesystem_->exists(path)) {
-    // bad request error, file DNE
+    BOOST_LOG_TRIVIAL(debug) << "CRUD[DELETE]: file at " << path << " does not exist";
     return parseResponse(
         makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
 
+  // couldn't remove
   if(!filesystem_->remove(path)){
-    // internal server error, couldn't remove
+    BOOST_LOG_TRIVIAL(debug) << "CRUD[DELETE]: couldn't remove file at " << path;
     return parseResponse(
         makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
 
-  // log successful removal
+  // successful removal
   BOOST_LOG_TRIVIAL(info) << "successfully removed entity at " << path;
   return parseResponse(
         makeHeader(OK_STATUS, TEXT_PLAIN, 0));
@@ -147,7 +152,6 @@ http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
   // 200 is OK as response for PUT (check RFC for detail)
   const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, 0);
   return parseResponse(header);
-
 }
 
 http_response CrudHandler::list(const fs::path &path) {
