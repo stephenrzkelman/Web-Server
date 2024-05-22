@@ -4,11 +4,12 @@ import argparse
 import sys
 import signal
 import time
+import shutil
 
 class IntegrationTest(): 
     def __init__(self, config, server) -> None:
         self.start_server(config, server)
-        self.is_server_on = True # assumes that start_server always successfully starts the server, shoudl add error handling
+        self.is_server_on = True # assumes that start_server always successfully starts the server, should add error handling
         self.num_tests = 0
         self.num_tests_pass = 0
 
@@ -137,6 +138,7 @@ def main(config = str, server = str):
     # Init Integration Test and Signal Handler for ctrl+c
     tester = IntegrationTest(config, server)
     signal.signal(signal.SIGINT, tester.signal_handler)
+    shutil.rmtree("../crud_files/test", ignore_errors=True)
 
     # A GET request sent through curl should receive a response
     tester.test_case_curl(name = "test_curl_basic",
@@ -186,6 +188,73 @@ faucibus purus in massa. Ultricies integer quis auctor elit sed.\"\r\n\r\n'''
                         expected=long_header + long_request,
                         args = ["localhost", "80"],
                         content_to_send=long_request)
+
+    ## CRUD test
+    # POST request to create a resource
+    post_data = '{"name": "test", "value": "123"}'
+    tester.test_case_curl(
+        name="test_curl_CRUD_POST",
+        expected='{\n    "id": "1"\n}\n',
+        args=['-X', 'POST', '-H', 'Content-Type: application/json', '-d', post_data, 'localhost:80/api/test'],
+    )
+    
+    # GET request to retrieve the created resource
+    tester.test_case_curl(
+        name="test_curl_CRUD_GET_retrieve_POST",
+        expected='{"name": "test", "value": "123"}',
+        args=['-X', 'GET', 'localhost:80/api/test/1']
+    )
+    
+    # PUT request to update the resource
+    put_data = '{"name": "test", "value": "456"}'
+    tester.test_case_curl(
+        name="test_curl_CRUD_PUT_update",
+        expected= "",
+        args=['-X', 'PUT', '-H', 'Content-Type: application/json', '-d', put_data, 'localhost:80/api/test/1'],
+    )
+    
+    # GET request to confirm the update
+    tester.test_case_curl(
+        name="test_curl_CRUD_retrieve_PUT",
+        expected='{"name": "test", "value": "456"}',
+        args=['-X', 'GET', 'localhost:80/api/test/1']
+    )
+
+    # DELETE request to remove the resource
+    tester.test_case_curl(
+        name="test_curl_CRUD_delete",
+        expected= "",
+        args=['-X', 'DELETE', 'localhost:80/api/test/1']
+    )
+    
+    # GET request to confirm the deletion
+    tester.test_case_curl(
+        name="test_curl_GET_confirm_delete",
+        expected= "",
+        args=['-X', 'GET', 'localhost:80/api/test/1']
+    )
+
+    # PUT request to make something at a specific ID
+    put_data = '{"name": "test", "value": "789"}'
+    tester.test_case_curl(
+        name="test_curl_CRUD_PUT_creation",
+        expected= "",
+        args=['-X', 'PUT', '-H', 'Content-Type: application/json', '-d', put_data, 'localhost:80/api/test/1'],
+    )
+
+    # GET request to confirm the creation
+    tester.test_case_curl(
+        name="test_curl_CRUD_GET_confirm_PUT_creation",
+        expected='{"name": "test", "value": "789"}',
+        args=['-X', 'GET', 'localhost:80/api/test/1']
+    )
+
+    # GET for LIST functionality
+    tester.test_case_curl(
+        name="test_curl_CRUD_GET_LIST",
+        expected='{\n    "files": [\n        "1"\n    ]\n}\n',
+        args=['-X', 'GET', 'localhost:80/api/test']
+    )
 
     # Finished test cases, close server
     tester.end_server()
