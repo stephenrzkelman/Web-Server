@@ -28,11 +28,13 @@ http_response CrudHandler::handle_request(const http_request &request) {
 
   if (request.method() == boost::beast::http::verb::get) {
     return handle_get(target);
-  } else if (request.method() == boost::beast::http::verb::post) {
+  } else if (request.method() == boost::beast::http::verb::post &&
+                request.at(boost::beast::http::field::content_type) == "application/json") {
     return handle_post(target, request.body());
   } else if (request.method() == boost::beast::http::verb::delete_) {
     return handle_delete(target);
-  } else if (request.method() == boost::beast::http::verb::put) {
+  } else if (request.method() == boost::beast::http::verb::put &&
+                request.at(boost::beast::http::field::content_type) == "application/json") {
     return handle_put(target, request.body());
   }
 
@@ -64,7 +66,7 @@ http_response CrudHandler::handle_get(const fs::path &path) {
   }
 
   const std::string body = body_opt.value();
-  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
+  const std::string header = makeHeader(OK_STATUS, JSON, body.size());
   return parseResponse(header + body);
 }
 
@@ -99,7 +101,7 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
     BOOST_LOG_TRIVIAL(debug)
         << "CRUD[POST]: failed to list files at path: " << path;
     return parseResponse(
-        makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
+        makeHeader(NOT_FOUND_STATUS, TEXT_PLAIN, 0));
   }
   // Get maximal ID in the path
   int maxID = 0;
@@ -125,7 +127,7 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
   pt::write_json(ss, root);
 
   const std::string body = ss.str();
-  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
+  const std::string header = makeHeader(OK_STATUS, JSON, body.size());
   return parseResponse(header + body);
 }
 
@@ -154,7 +156,9 @@ http_response CrudHandler::handle_delete(const fs::path &path) {
 
   // successful removal
   BOOST_LOG_TRIVIAL(info) << "successfully removed entity at " << path;
-  return parseResponse(makeHeader(OK_STATUS, TEXT_PLAIN, 0));
+  http_response response;
+  response.result(boost::beast::http::status::no_content);
+  return response;
 }
 
 http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
@@ -168,9 +172,10 @@ http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
   // write new body
   filesystem_->write(path, data);
 
-  // 200 is OK as response for PUT (check RFC for detail)
-  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, 0);
-  return parseResponse(header);
+  // 204 no_content as response for PUT (check RFC for detail)  
+  http_response response;
+  response.result(boost::beast::http::status::no_content);
+  return response;
 }
 
 http_response CrudHandler::list(const fs::path &path) {
@@ -195,6 +200,6 @@ http_response CrudHandler::list(const fs::path &path) {
   std::stringstream ss;
   pt::write_json(ss, root);
   const std::string body = ss.str();
-  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
+  const std::string header = makeHeader(OK_STATUS, JSON, body.size());
   return parseResponse(header + body);
 }

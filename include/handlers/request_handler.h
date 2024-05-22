@@ -18,6 +18,7 @@ const std::string TEXT_PLAIN = "text/plain";
 const std::string TEXT_HTML = "text/html";
 const std::string IMAGE_JPEG = "image/jpeg";
 const std::string APPLICATION_ZIP = "application/zip";
+const std::string JSON = "application/json";
 // status codes, see
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
 enum RESPONSE_CODE : unsigned int {

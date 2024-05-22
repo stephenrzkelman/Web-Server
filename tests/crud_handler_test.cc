@@ -155,7 +155,7 @@ TEST_F(CrudHandlerTest, GetFiles) {
   ok_request.target("/api/Shoes/1");
   http_response response = handler.handle_request(ok_request);
   EXPECT_EQ(response.result(), boost::beast::http::status::ok);
-  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "text/plain");
+  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "application/json");
   EXPECT_EQ(response.body(), body);
 
   http_request bad_request;
@@ -184,9 +184,11 @@ TEST_F(CrudHandlerTest, GetDirectory) {
   http_request ok_request;
   ok_request.method(boost::beast::http::verb::get);
   ok_request.target("/api/Shoes/");
+  ok_request.set(boost::beast::http::field::content_type, "application/json");
   http_response response = handler.handle_request(ok_request);
+
   EXPECT_EQ(response.result(), boost::beast::http::status::ok);
-  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "text/plain");
+  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "application/json");
   EXPECT_EQ(response.body(), "{\n"
                              "    \"files\": [\n"
                              "        \"1\",\n"
@@ -220,13 +222,14 @@ TEST_F(CrudHandlerTest, PostGet) {
   const std::string body1 = "This is the first write!";
   http_request ok_request1;
   ok_request1.method(boost::beast::http::verb::post);
+  ok_request1.set(boost::beast::http::field::content_type, "application/json");
   ok_request1.target("/api/Shoes/");
   ok_request1.body() = body1;
 
   http_response response1 = handler.handle_request(ok_request1);
   EXPECT_EQ(response1.result(), boost::beast::http::status::ok);
   EXPECT_EQ(response1.at(boost::beast::http::field::content_type),
-            "text/plain");
+            "application/json");
   EXPECT_EQ(response1.body(), "{\n"
                               "    \"id\": \"1\"\n"
                               "}\n");
@@ -234,13 +237,14 @@ TEST_F(CrudHandlerTest, PostGet) {
   const std::string body2 = "Another write";
   http_request ok_request2;
   ok_request2.method(boost::beast::http::verb::post);
+  ok_request2.set(boost::beast::http::field::content_type, "application/json");
   ok_request2.target("/api/Shoes/");
   ok_request2.body() = body2;
 
   http_response response2 = handler.handle_request(ok_request2);
   EXPECT_EQ(response2.result(), boost::beast::http::status::ok);
   EXPECT_EQ(response2.at(boost::beast::http::field::content_type),
-            "text/plain");
+            "application/json");
   EXPECT_EQ(response2.body(), "{\n"
                               "    \"id\": \"2\"\n"
                               "}\n");
@@ -252,7 +256,7 @@ TEST_F(CrudHandlerTest, PostGet) {
   http_response response3 = handler.handle_request(ok_request3);
   EXPECT_EQ(response3.result(), boost::beast::http::status::ok);
   EXPECT_EQ(response3.at(boost::beast::http::field::content_type),
-            "text/plain");
+            "application/json");
   EXPECT_EQ(response3.body(), body1);
 
   http_request ok_request4;
@@ -262,13 +266,14 @@ TEST_F(CrudHandlerTest, PostGet) {
   http_response response4 = handler.handle_request(ok_request4);
   EXPECT_EQ(response4.result(), boost::beast::http::status::ok);
   EXPECT_EQ(response4.at(boost::beast::http::field::content_type),
-            "text/plain");
+            "application/json");
   EXPECT_EQ(response4.body(), body2);
 
   // Can't POST to a file
   http_request bad_request;
   bad_request.method(boost::beast::http::verb::post);
   bad_request.target("/api/Shoes/3");
+  bad_request.set(boost::beast::http::field::content_type, "application/json");
   http_response bad_response = handler.handle_request(bad_request);
   EXPECT_EQ(bad_response.result(), boost::beast::http::status::bad_request);
   EXPECT_EQ(bad_response.body(), "");
@@ -293,7 +298,7 @@ TEST_F(CrudHandlerTest, DeleteFile) {
   http_response response = handler.handle_request(delete_request);
 
   // 3: Verify that the file is deleted successfully
-  EXPECT_EQ(response.result(), boost::beast::http::status::ok);
+  EXPECT_EQ(response.result(), boost::beast::http::status::no_content);
   EXPECT_EQ(response.body(), "");
 
   // 4: Confirm that the file no longer exists in the filesystem
@@ -352,13 +357,15 @@ TEST_F(CrudHandlerTest, PutSuccess) {
   // make request
   http_request ok_request;
   ok_request.method(boost::beast::http::verb::put);
+  ok_request.set(boost::beast::http::field::content_type, "application/json");
   ok_request.target("/api/Shoes/1");
   ok_request.body() = body;
+  ok_request.prepare_payload();
+
   http_response response = handler.handle_request(ok_request);
 
   // read request
-  EXPECT_EQ(response.result(), boost::beast::http::status::ok);
-  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "text/plain");
+  EXPECT_EQ(response.result(), boost::beast::http::status::no_content);
 
   // check conctents
   http_request get_request;
@@ -366,8 +373,6 @@ TEST_F(CrudHandlerTest, PutSuccess) {
   get_request.target("/api/Shoes/1");
   http_response response_get = handler.handle_request(get_request);
   EXPECT_EQ(response_get.result(), boost::beast::http::status::ok);
-  EXPECT_EQ(response_get.at(boost::beast::http::field::content_type),
-            "text/plain");
   EXPECT_EQ(response_get.body(), body);
 }
 
@@ -386,6 +391,7 @@ TEST_F(CrudHandlerTest, PutFailureDirectory) {
   // make request
   http_request ok_request;
   ok_request.method(boost::beast::http::verb::put);
+  ok_request.set(boost::beast::http::field::content_type, "application/json");
   ok_request.target("/api/Shoes");
   ok_request.body() = "ID 1 NEW";
   http_response response = handler.handle_request(ok_request);
@@ -412,13 +418,13 @@ TEST_F(CrudHandlerTest, PutSuccessNoFile) {
   // make request
   http_request ok_request;
   ok_request.method(boost::beast::http::verb::put);
+  ok_request.set(boost::beast::http::field::content_type, "application/json");
   ok_request.target("/api/Shoes/4");
   ok_request.body() = body;
   http_response response = handler.handle_request(ok_request);
 
   // read request
-  EXPECT_EQ(response.result(), boost::beast::http::status::ok);
-  EXPECT_EQ(response.at(boost::beast::http::field::content_type), "text/plain");
+  EXPECT_EQ(response.result(), boost::beast::http::status::no_content);
 
   http_request get_request;
   get_request.method(boost::beast::http::verb::get);
@@ -426,7 +432,7 @@ TEST_F(CrudHandlerTest, PutSuccessNoFile) {
   http_response response_get = handler.handle_request(get_request);
   EXPECT_EQ(response_get.result(), boost::beast::http::status::ok);
   EXPECT_EQ(response_get.at(boost::beast::http::field::content_type),
-            "text/plain");
+            "application/json");
   EXPECT_EQ(response_get.body(), body);
 
 }
