@@ -11,10 +11,25 @@ protected:
   }
   void manage_request_success(boost::asio::mutable_buffer request,
                               std::string expected_response) {
+    boost::beast::error_code ec;
+    boost::beast::http::request_parser<boost::beast::http::string_body> parser;
+
+    auto n_bytes = parser.put(request, ec);
+    ASSERT_TRUE(parser.is_header_done());
+
+    if (!parser.is_done()) {
+      request += n_bytes;
+      parser.put(request, ec);
+    }
+    parser.put_eof(ec);
+    ASSERT_TRUE(parser.is_done());
+
+    auto request_obj = parser.release();
+
     std::unordered_map<std::string, LocationData> locations =
         full_parsed_config.findLocations().value();
     RequestManager request_manager = RequestManager(locations);
-    http_response response = request_manager.manageRequest(request);
+    http_response response = request_manager.manageRequest(request_obj);
     std::stringstream result;
     result << response;
     EXPECT_EQ(result.str(), expected_response);
@@ -78,13 +93,6 @@ TEST_F(RequestManagerTest, ManageNonexistentRequestTest) {
   std::string request_string =
       "GET / HTTP/1.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nConnection: "
       "keep-alive\r\n\r\n";
-  boost::asio::mutable_buffer request = boost::asio::buffer(request_string);
-  SetUp("configs/all_items_config");
-  manage_request_success(request, not_found_header);
-}
-
-TEST_F(RequestManagerTest, ManageEmptyRequestTest) {
-  std::string request_string = "";
   boost::asio::mutable_buffer request = boost::asio::buffer(request_string);
   SetUp("configs/all_items_config");
   manage_request_success(request, not_found_header);

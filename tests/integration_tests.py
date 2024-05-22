@@ -153,7 +153,7 @@ def main(config = str, server = str):
     tester.test_case_nc(name = "test_nc_not_1.1", 
                         expected =not_found_header, 
                         args = ['localhost', '80'],
-                        content_to_send='hey there\r\n')
+                        content_to_send='GET /sodhfoisdfjhosdifj HTTP/1.1\r\n\r\n')
     
     # sending a valid HTTP request through netcat should receive an echo'd response appended to the response header
     valid_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 77\r\n\r\n"

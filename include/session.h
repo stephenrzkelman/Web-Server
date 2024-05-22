@@ -39,13 +39,16 @@ private:
     // This function is called when an asynchronous write operation initiated by 'handle_read()' completes.
     // Parameters:
     //   error: The error code associated with the completion of the write operation.
-    void handle_write(const boost::system::error_code& error);
+    void handle_write(const boost::system::error_code& error, size_t bytes_transferred);
 
     // Member variables
     boost::asio::ip::tcp::socket socket_;
     std::shared_ptr<RequestManager> request_manager_;
-    enum { max_length = 1024 };
-    char data_[max_length];
+
+    boost::beast::flat_buffer request_buf_;
+    http_request request_;
+    http_response response_;
+
     //Private member to hold in progress request
     std::string partialRequest;
 };
