@@ -20,5 +20,5 @@ location /static1234 StaticHandler{
 }
 location /api CrudHandler{
     # TODO: change as needed
-    data_path /usr/src/projects/fortnite-gamers/crud_files;
+    data_path ./crud_files;
 }
