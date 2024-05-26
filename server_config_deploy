@@ -1,0 +1,23 @@
+port 80;
+location /echo EchoHandler{}
+location /static StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static2 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static3 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static4 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static85 StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files;
+}
+location /static1234 StaticHandler{
+    root '/usr/src/projects/fortnite-gamers/files/static attic';
+}
+location /api CrudHandler{
+    data_path /mnt/storage/crud_files;
+}
