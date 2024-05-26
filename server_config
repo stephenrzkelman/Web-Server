@@ -1,5 +1,6 @@
 port 80;
 location /echo EchoHandler{}
+location /health HealthHandler{}
 location /static StaticHandler{
     root /usr/src/projects/fortnite-gamers/files;
 }
@@ -22,3 +23,4 @@ location /api CrudHandler{
     # TODO: change as needed
     data_path ./crud_files;
 }
+
