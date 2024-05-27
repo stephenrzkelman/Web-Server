@@ -1,5 +1,7 @@
 port 80;
 location /echo EchoHandler{}
+location /health HealthHandler{}
+location /sleep SleepHandler{}
 location /static StaticHandler{
     root /usr/src/projects/fortnite-gamers/files;
 }
@@ -21,5 +23,4 @@ location /static1234 StaticHandler{
 location /api CrudHandler{
     data_path /mnt/storage/crud_files;
 }
-location /sleep SleepHandler{
-}
+
