@@ -128,6 +128,48 @@ class IntegrationTest():
         print(f"\nStarting nc test case: {name}")
         response = self.netcat_server(args, content_to_send)
         return self.__test_case_helper(name, expected, response)
+    
+    def test_case_sleep(self) -> bool:
+        print(f"\nStarting sleep test case")
+
+        # Call sleep handler then immediately call an echo request in another process
+        sleep_process = subprocess.Popen(['curl', 'localhost:80/sleep'], stdout=subprocess.PIPE)
+        
+        # Echo request should immediately return the response
+        echo_process = subprocess.Popen(["curl", "localhost:80/echo"], stdout=subprocess.PIPE)
+
+        echo_out = ""
+        try:
+            # wait for echo process to complete then collect output
+            # given timeout of 2 sec to test if echo process returns response without waiting for sleep
+            out, _ = echo_process.communicate(timeout=2)
+            echo_out = out.decode('utf-8')
+            # ensure sleep process is still running (echo is handled before sleep)
+            assert(sleep_process.poll() is None)
+        except AssertionError: 
+            print(f"sleep test case: FAIL")
+            print(f"Expected echo process to finish before sleep process finished")
+            return False
+        except Exception as e:
+            echo_out = e
+            echo_process.kill()
+
+        sleep_out = ""
+        try:
+            # wait for sleep process to complete then collect output
+            out, _ = sleep_process.communicate(timeout=4)
+            sleep_out = out.decode('utf-8')
+        except Exception as e:
+            sleep_out = e
+            sleep_process.kill()
+
+        sleep_expected = "Sleep handler test"
+        sleep_pass = self.__test_case_helper(name="test_case_sleep:sleep", expected= sleep_expected, given=sleep_out) 
+        echo_expected = "GET /echo HTTP/1.1\r\nHost: localhost\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"
+        echo_pass = self.__test_case_helper(name="test_case_sleep:echo", expected= echo_expected, given=echo_out)
+
+        return echo_pass and sleep_pass
+
 
     def signal_handler(self, sig, frame):
         print('Integration tests interrupted, received SIGINT (ctrl+c)')
@@ -165,6 +207,9 @@ def main(config = str, server = str):
                         args = ["localhost", "80"],
                         content_to_send=valid_request)
     
+    # multithread test
+    tester.test_case_sleep()
+
     # even a header with a long amount of content should return a proper response
     long_header = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2777\r\n\r\n"
     long_request = '''GET /echo HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nLorem-ipsum: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod \

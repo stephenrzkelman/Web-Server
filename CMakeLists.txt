@@ -50,7 +50,7 @@ add_library(filesystem_lib src/filesystem/filesystem.cc)
 add_library(manager_lib src/request_manager.cc)
 add_library(crud_handler_lib OBJECT src/handlers/crud_handler.cc)
 add_library(health_handler_lib OBJECT src/handlers/health_handler.cc)
-
+add_library(sleep_handler_lib OBJECT src/handlers/sleep_handler.cc)
 
 # Update C++ version for files that need cpp20 features like contains()
 target_compile_features(manager_lib PUBLIC cxx_std_20)
@@ -67,6 +67,7 @@ target_link_libraries(
     static_handler_lib
     crud_handler_lib
     echo_handler_lib
+    sleep_handler_lib
     Boost::log_setup Boost::log
 )
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
@@ -74,6 +75,7 @@ target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::file
 target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
 target_link_libraries(crud_handler_lib handler_lib filesystem_lib Boost::filesystem Boost::log_setup Boost::log)
 target_link_libraries(health_handler_lib handler_lib Boost::log_setup Boost::log)
+target_link_libraries(sleep_handler_lib Boost::log_setup Boost::log)
 
 # add server executable
 add_executable(server src/server_main.cc)
@@ -85,6 +87,7 @@ target_link_libraries(
     static_handler_lib
     crud_handler_lib
     health_handler_lib
+    sleep_handler_lib
     session_lib 
     server_lib 
     manager_lib 

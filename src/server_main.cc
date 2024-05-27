@@ -14,6 +14,7 @@
 #include "server.h"
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/thread.hpp>
 #include <cstdlib>
 #include <iostream>
 
@@ -63,8 +64,13 @@ int main(int argc, char *argv[]) {
     server s(io_service, request_manager, port_number);
     s.start_accept();
 
-    // Run io
-    io_service.run();
+    // Run io with thread pool
+    boost::thread_group tg;
+    for (unsigned i = 0; i < std::thread::hardware_concurrency(); ++i) {
+        tg.create_thread(boost::bind(&boost::asio::io_service::run, &io_service));
+    }
+    tg.join_all();
+
   } catch (std::exception &e) {
     std::cerr << "Exception: " << e.what() << "\n";
   }

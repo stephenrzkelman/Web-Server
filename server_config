@@ -23,4 +23,5 @@ location /api CrudHandler{
     # TODO: change as needed
     data_path ./crud_files;
 }
-
+location /sleep SleepHandler{
+}
