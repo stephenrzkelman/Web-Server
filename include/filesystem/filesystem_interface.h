@@ -1,6 +1,7 @@
 #ifndef FILESYSTEM_INTERFACE_H
 #define FILESYSTEM_INTERFACE_H
 
+#include "filesystem/filesystem_constants.h"
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -14,6 +15,7 @@ public:
   // Returns std::nullopt if the input path doesn't exist or isn't a directory
   virtual std::optional<std::vector<std::filesystem::path>>
   list(const std::filesystem::path &directory) const = 0;
+  virtual FILE_TYPE fileType(std::string file_name) const  = 0;
   // Pure virtual function to read the file at a given path
   // Returns std::nullopt if the file doesn't exist, otherwise the file contents
   virtual std::optional<std::string>

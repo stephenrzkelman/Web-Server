@@ -2,6 +2,7 @@
 #define FILESYSTEM_H
 
 #include "filesystem/filesystem_interface.h"
+#include <boost/filesystem.hpp>
 #include <optional>
 #include <string>
 
@@ -11,6 +12,7 @@ public:
   bool exists(const std::filesystem::path &path) const override;
   std::optional<std::vector<std::filesystem::path>>
   list(const std::filesystem::path &directory) const override;
+  FILE_TYPE fileType(std::string file_name) const override;
   std::optional<std::string>
   read(const std::filesystem::path &filename) const override;
   bool write(const std::filesystem::path &filename,
@@ -20,6 +22,7 @@ public:
   bool create_directories(const std::filesystem::path &path) override;
 
 private:
+  static std::recursive_mutex mtx_;
   // Some helper methods to help in performing error checking, otherwise the
   // server might panic and crash at runtime
 

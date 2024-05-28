@@ -23,4 +23,3 @@ location /static1234 StaticHandler{
 location /api CrudHandler{
     data_path /mnt/storage/crud_files;
 }
-

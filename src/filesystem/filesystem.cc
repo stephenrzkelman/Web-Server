@@ -9,7 +9,10 @@
 
 namespace fs = std::filesystem;
 
+std::recursive_mutex FileSystem::mtx_;
+
 bool FileSystem::exists(const fs::path &path) const {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   std::error_code ec;
   bool path_exists = fs::exists(path, ec);
   if (ec) {
@@ -22,6 +25,7 @@ bool FileSystem::exists(const fs::path &path) const {
 
 std::optional<std::vector<fs::path>>
 FileSystem::list(const fs::path &directory) const {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   if (!exists(directory)) {
     BOOST_LOG_TRIVIAL(debug) << directory << " doesn't exist";
     return std::nullopt;
@@ -40,7 +44,18 @@ FileSystem::list(const fs::path &directory) const {
   return files;
 };
 
+FILE_TYPE FileSystem::fileType(std::string file_name) const {
+  std::string file_extension =
+      boost::filesystem::path(file_name).extension().string();
+  if (FILE_TYPE_MAP.find(file_extension) == FILE_TYPE_MAP.end()) {
+    return NO_MATCHING_TYPE;
+  } else {
+    return FILE_TYPE_MAP.find(file_extension)->second;
+  }
+}
+
 std::optional<std::string> FileSystem::read(const fs::path &filename) const {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   if (!exists(filename)) {
     BOOST_LOG_TRIVIAL(debug) << filename << " doesn't exist";
     return std::nullopt;
@@ -56,6 +71,7 @@ std::optional<std::string> FileSystem::read(const fs::path &filename) const {
 }
 
 bool FileSystem::write(const fs::path &filename, const std::string &data) {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   if (!filename.has_filename()) {
     BOOST_LOG_TRIVIAL(debug) << filename << " doesn't refer to a file";
     return false;
@@ -78,6 +94,7 @@ bool FileSystem::write(const fs::path &filename, const std::string &data) {
 }
 
 bool FileSystem::remove(const fs::path &filename) {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   if (!is_regular_file(filename)) {
     BOOST_LOG_TRIVIAL(debug) << "couldn't delete " << filename
                              << " because it is not a regular file";
@@ -94,6 +111,7 @@ bool FileSystem::remove(const fs::path &filename) {
 }
 
 bool FileSystem::is_regular_file(const fs::path &path) const {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   std::error_code ec;
   bool is_regular_file = fs::is_regular_file(path, ec);
   if (ec) {
@@ -105,6 +123,7 @@ bool FileSystem::is_regular_file(const fs::path &path) const {
 }
 
 bool FileSystem::is_directory(const fs::path &path) const {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   std::error_code ec;
   bool is_directory = fs::is_directory(path, ec);
   if (ec) {
@@ -116,6 +135,7 @@ bool FileSystem::is_directory(const fs::path &path) const {
 }
 
 bool FileSystem::create_directories(const fs::path &path) {
+  std::lock_guard<std::recursive_mutex> lk(mtx_);
   std::error_code ec;
   bool created = fs::create_directories(path, ec);
   if (ec) {

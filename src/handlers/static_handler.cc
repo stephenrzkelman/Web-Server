@@ -1,9 +1,11 @@
 #include "handlers/static_handler.h"
-#include "file_reader.h"
+#include "filesystem/filesystem.h"
 
 StaticHandler::StaticHandler(std::string path,
-                             std::unordered_map<std::string, std::string> args)
-    : path_(path), root_(args[STATIC_HANDLER_ROOT_ARG]) {}
+                             std::unordered_map<std::string, std::string> args,
+                             std::unique_ptr<FileSystemInterface> filesystem)
+    : path_(path), root_(args[STATIC_HANDLER_ROOT_ARG]), 
+    filesystem_(std::move(filesystem))  {}
 
 http_response StaticHandler::handle_request(const http_request &request) {
   RESPONSE_CODE status_code;
@@ -12,15 +14,12 @@ http_response StaticHandler::handle_request(const http_request &request) {
   std::string responseString;
   std::string target_suffix =
       std::string(request.target()).substr(path_.size());
-  std::string target_file = root_ + target_suffix;
-  std::ifstream file_handler;
-  FileReader file_reader = FileReader(file_handler);
-  FILE_TYPE file_type = file_reader.fileType(target_file);
-  BOOST_LOG_TRIVIAL(info) << "File requested: " << target_file;
-
-  // TODO ERROR HANDLE READFILE FOR WHEN ROOT DIRECTORY IS REQUESTED
-  bool successful_read = file_reader.readFile(target_file, responseString);
-  if (file_type == NO_MATCHING_TYPE || !successful_read) {
+  const std::filesystem::path target = root_ + target_suffix;
+  FILE_TYPE file_type = filesystem_->fileType(target);
+  BOOST_LOG_TRIVIAL(info) << "File requested: " << target;
+  std::optional<std::string> read_response = filesystem_->read(target);
+  responseString = read_response.has_value() ? read_response.value() : "";
+  if (file_type == NO_MATCHING_TYPE || !read_response.has_value()) {
     BOOST_LOG_TRIVIAL(warning) << "No acceptable matching file type found";
     status_code = NOT_FOUND_STATUS;
     content_type = TEXT_PLAIN;
@@ -56,5 +55,5 @@ http_response StaticHandler::handle_request(const http_request &request) {
 RequestHandler *
 StaticHandler::Init(std::string path,
                     std::unordered_map<std::string, std::string> args) {
-  return new StaticHandler(path, args);
+  return new StaticHandler(path, args, std::make_unique<FileSystem>());
 }

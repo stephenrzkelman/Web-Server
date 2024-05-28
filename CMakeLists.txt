@@ -41,7 +41,6 @@ add_library(handler_lib src/handlers/request_handler.cc)
 add_library(config_parser_lib src/config_parser.cc)
 add_library(location_data_lib src/location_data.cc)
 add_library(logging_lib src/logging.cc)
-add_library(file_reader_lib src/file_reader.cc)
 add_library(signal_lib src/signal_handler.cc)
 add_library(static_handler_lib OBJECT src/handlers/static_handler.cc)
 add_library(echo_handler_lib OBJECT src/handlers/echo_handler.cc)
@@ -60,7 +59,6 @@ target_compile_features(config_parser_lib PUBLIC cxx_std_20)
 target_link_libraries(server_lib session_lib signal_lib)
 target_link_libraries(manager_lib handler_lib location_data_lib Boost::log_setup Boost::log)
 target_link_libraries(session_lib manager_lib)
-target_link_libraries(file_reader_lib Boost::system Boost::filesystem)
 target_link_libraries(
     config_parser_lib 
     location_data_lib 
@@ -71,7 +69,7 @@ target_link_libraries(
     Boost::log_setup Boost::log
 )
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
-target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::filesystem Boost::log_setup Boost::log)
+target_link_libraries(static_handler_lib handler_lib filesystem_lib Boost::log_setup Boost::log)
 target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
 target_link_libraries(crud_handler_lib handler_lib filesystem_lib Boost::filesystem Boost::log_setup Boost::log)
 target_link_libraries(health_handler_lib handler_lib Boost::log_setup Boost::log)
@@ -111,7 +109,7 @@ add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
 
 add_executable(server_test tests/server_test.cc)
-target_link_libraries(server_test server_lib file_reader_lib gtest_main)
+target_link_libraries(server_test server_lib gtest_main)
 
 add_executable(error_handler_test tests/error_handler_test.cc)
 target_link_libraries(error_handler_test error_handler_lib gtest_main)
@@ -130,7 +128,6 @@ target_link_libraries(
     static_handler_lib
     crud_handler_lib
     handler_lib
-    file_reader_lib 
     gtest_main
 )
 
@@ -162,7 +159,6 @@ generate_coverage_report(
         echo_handler_lib 
         error_handler_lib
         health_handler_lib
-        file_reader_lib
         manager_lib  
         server_lib  
         location_data_lib

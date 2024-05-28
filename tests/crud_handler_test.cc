@@ -1,6 +1,7 @@
 #include "filesystem/filesystem_interface.h"
 #include "handlers/crud_handler.h"
 #include "gtest/gtest.h"
+#include <boost/filesystem.hpp>
 #include <memory>
 
 class FakeFileSystem : public FileSystemInterface {
@@ -28,6 +29,17 @@ public:
     std::sort(files.begin(), files.end());
     return files;
   }
+
+  FILE_TYPE fileType(std::string file_name) const override {
+    std::string file_extension =
+    boost::filesystem::path(file_name).extension().string();
+    if (FILE_TYPE_MAP.find(file_extension) == FILE_TYPE_MAP.end()) {
+      return NO_MATCHING_TYPE;
+    } else {
+      return FILE_TYPE_MAP.find(file_extension)->second;
+    }
+  }
+
   std::optional<std::string>
   read(const std::filesystem::path &filename) const override {
     // If the given path is a directory, then return nullopt

@@ -1,10 +1,5 @@
-#ifndef FILE_READER_H
-#define FILE_READER_H
-
-#include <boost/filesystem.hpp>
-#include <boost/asio.hpp>
-
-const uintmax_t MB_BYTE_COUNT = 1024 * 1024;
+#include <string>
+#include <unordered_map>
 
 // recognized file extensions
 const std::string TEXT_FILE_EXT = ".txt";
@@ -28,17 +23,3 @@ const std::unordered_map<std::string, FILE_TYPE> FILE_TYPE_MAP = {
     {HTML_FILE_EXT, HTML_FILE},
     {ZIP_FILE_EXT, ZIP_FILE}
 };
-
-class FileReader {
-    public:
-        FileReader(std::ifstream& file_handler);
-        bool readFile(
-            std::string file_name,
-            std::string&  content_length
-        );
-        FILE_TYPE fileType(std::string file_name);
-    private:
-        std::ifstream& file_handler_;
-};
-
-#endif // FILE_READER_H

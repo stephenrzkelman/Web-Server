@@ -1,6 +1,6 @@
 #include "handlers/static_handler.h"
 #include "gtest/gtest.h"
-#include <boost/filesystem.hpp>
+#include "filesystem/filesystem.h"
 
 const std::string NOT_FOUND_RESPONSE_HEADER = "HTTP/1.1 404 Bad Request\r\n\
 Content-Type: text/plain\r\n\
@@ -14,7 +14,7 @@ protected:
                               std::string expected_response) {
     std::shared_ptr<RequestHandler> static_handler;
     static_handler.reset(
-        new StaticHandler("/static", {{"root", root_directory}}));
+        new StaticHandler("/static", {{"root", root_directory}}, std::make_unique<FileSystem>()));
     http_request data;
     data.target(rel_path);
     static_handler->handle_request(data);
