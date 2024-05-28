@@ -10,6 +10,7 @@ EchoHandler::EchoHandler() {}
 // sequence.
 http_response EchoHandler::handle_request(const http_request &request) {
   // Convert the request to a string
+  log_handle_request_details(std::string(request.target()), "EchoHandler", OK_STATUS);
   std::stringstream reqstream;
   reqstream << request;
   std::string requestString = reqstream.str();

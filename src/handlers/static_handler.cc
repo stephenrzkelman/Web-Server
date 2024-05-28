@@ -6,7 +6,6 @@ StaticHandler::StaticHandler(std::string path,
     : path_(path), root_(args[STATIC_HANDLER_ROOT_ARG]) {}
 
 http_response StaticHandler::handle_request(const http_request &request) {
-  BOOST_LOG_TRIVIAL(info) << "Handling static request";
   RESPONSE_CODE status_code;
   std::string content_type;
   uintmax_t content_length = 0;
@@ -18,13 +17,17 @@ http_response StaticHandler::handle_request(const http_request &request) {
   FileReader file_reader = FileReader(file_handler);
   FILE_TYPE file_type = file_reader.fileType(target_file);
   BOOST_LOG_TRIVIAL(info) << "File requested: " << target_file;
+
+  // TODO ERROR HANDLE READFILE FOR WHEN ROOT DIRECTORY IS REQUESTED
   bool successful_read = file_reader.readFile(target_file, responseString);
   if (file_type == NO_MATCHING_TYPE || !successful_read) {
-    BOOST_LOG_TRIVIAL(error) << "No acceptable matching file type found";
+    BOOST_LOG_TRIVIAL(warning) << "No acceptable matching file type found";
     status_code = NOT_FOUND_STATUS;
     content_type = TEXT_PLAIN;
+    log_handle_request_details(std::string(request.target()), "StaticHandler", status_code);
   } else {
     status_code = OK_STATUS;
+    log_handle_request_details(std::string(request.target()), "StaticHandler", status_code);
     switch (file_type) {
     case TEXT_FILE:
       BOOST_LOG_TRIVIAL(info) << "Text file requested";

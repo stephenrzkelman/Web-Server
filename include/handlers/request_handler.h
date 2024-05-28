@@ -23,6 +23,7 @@ const std::string JSON = "application/json";
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
 enum RESPONSE_CODE : unsigned int {
     OK_STATUS = 200,
+    NO_CONTENT_STATUS = 204,
     BAD_REQUEST_STATUS = 400,
     NOT_FOUND_STATUS = 404,
     INTERNAL_SERVER_ERROR_STATUS = 500
@@ -58,6 +59,9 @@ protected:
 
     //Function to create http response object from given response string
     http_response parseResponse(std::string response);
+
+    //Member function used to log the behavior of handle_request in a structured format
+    void log_handle_request_details(const std::string requestTarget, std::string requestHandlerName, unsigned int responseCode);
 
     //Private member to hold last generated response header.
     std::string lastResponseHeader;

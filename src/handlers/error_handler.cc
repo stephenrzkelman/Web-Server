@@ -9,7 +9,7 @@ ErrorHandler::ErrorHandler() {}
 // body of a predefined response through a buffer sequence. Returns buffer
 // sequence.
 http_response ErrorHandler::handle_request(const http_request &request) {
-  BOOST_LOG_TRIVIAL(info) << "Handling an error request";
+  log_handle_request_details(std::string(request.target()), "ErrorHandler", NOT_FOUND_STATUS);
   lastResponseHeader = makeHeader(NOT_FOUND_STATUS, TEXT_PLAIN, 0);
   lastResponse = lastResponseHeader;
   return parseResponse(lastResponse);

@@ -18,7 +18,7 @@ CrudHandler::CrudHandler(std::string path,
       filesystem_(std::move(filesystem)) {}
 
 http_response CrudHandler::handle_request(const http_request &request) {
-  BOOST_LOG_TRIVIAL(info) << "Handling CRUD request";
+  BOOST_LOG_TRIVIAL(debug) << "Handling CRUD request";
 
   // Get the "true" target path by replacing the api prefix with the actual
   // filesystem path that the handler is mounted to
@@ -39,7 +39,8 @@ http_response CrudHandler::handle_request(const http_request &request) {
   }
 
   // Unimplemented functionality, return 400
-  BOOST_LOG_TRIVIAL(warning) << "CRUD handler doesn't implement "
+  log_handle_request_details(std::string(request.target()), "CrudHandler", BAD_REQUEST_STATUS);
+  BOOST_LOG_TRIVIAL(debug) << "CRUD handler doesn't implement "
                              << request.method() << "; returning BAD_REQUEST";
   return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
 }
@@ -59,12 +60,14 @@ http_response CrudHandler::handle_get(const fs::path &path) {
   // for ID specific retrieval
   const std::optional<std::string> body_opt = filesystem_->read(path);
   if (!body_opt.has_value()) {
-    BOOST_LOG_TRIVIAL(debug)
+    log_handle_request_details(std::string(path), "CrudHandler", INTERNAL_SERVER_ERROR_STATUS);
+    BOOST_LOG_TRIVIAL(warning)
         << "CRUD[GET]: failed to read file at path " << path;
     return parseResponse(
         makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
 
+  log_handle_request_details(std::string(path), "CrudHandler", OK_STATUS);
   const std::string body = body_opt.value();
   const std::string header = makeHeader(OK_STATUS, JSON, body.size());
   return parseResponse(header + body);
@@ -85,11 +88,13 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
       std::distance(normal_fs_path.begin(), normal_fs_path.end());
   // If the target is more than one component, it's a bad request
   if (data_path_len + 1 != path_len) {
+    log_handle_request_details(std::string(path), "CrudHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "CRUD[POST]: POST path " << path << " should have only one element ";
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
   if (!filesystem_->create_directories(path)) {
+    log_handle_request_details(std::string(path), "CrudHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "CRUD[POST]: failing to create directories at path: " << path;
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
@@ -98,6 +103,7 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
   const std::optional<std::vector<fs::path>> files_opt =
       filesystem_->list(path);
   if (!files_opt.has_value()) {
+    log_handle_request_details(std::string(path), "CrudHandler", NOT_FOUND_STATUS);
     BOOST_LOG_TRIVIAL(debug)
         << "CRUD[POST]: failed to list files at path: " << path;
     return parseResponse(
@@ -120,12 +126,15 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
 
   // Increment ID, and make a new file in the path with new ID
   filesystem_->write(path / std::to_string(maxID + 1), data);
+
   // Create JSON containing new ID, serialize into string, and return it
   pt::ptree root, id;
   root.put("id", maxID + 1);
   std::stringstream ss;
   pt::write_json(ss, root);
 
+  // Return response
+  log_handle_request_details(std::string(path), "CrudHandler", OK_STATUS);
   const std::string body = ss.str();
   const std::string header = makeHeader(OK_STATUS, JSON, body.size());
   return parseResponse(header + body);
@@ -134,6 +143,7 @@ http_response CrudHandler::handle_post(const fs::path &path, std::string data) {
 http_response CrudHandler::handle_delete(const fs::path &path) {
   // no specific ID given
   if (filesystem_->is_directory(path)) {
+    log_handle_request_details(std::string(path), "CrudHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning) << "CRUD[DELETE]: request target " << path
                                << " is not a valid path element";
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
@@ -141,6 +151,7 @@ http_response CrudHandler::handle_delete(const fs::path &path) {
 
   // file DNE
   if (!filesystem_->exists(path)) {
+    log_handle_request_details(std::string(path), "CrudHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(debug)
         << "CRUD[DELETE]: file at " << path << " does not exist";
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
@@ -148,6 +159,7 @@ http_response CrudHandler::handle_delete(const fs::path &path) {
 
   // couldn't remove
   if (!filesystem_->remove(path)) {
+    log_handle_request_details(std::string(path), "CrudHandler", INTERNAL_SERVER_ERROR_STATUS);
     BOOST_LOG_TRIVIAL(debug)
         << "CRUD[DELETE]: couldn't remove file at " << path;
     return parseResponse(
@@ -155,7 +167,7 @@ http_response CrudHandler::handle_delete(const fs::path &path) {
   }
 
   // successful removal
-  BOOST_LOG_TRIVIAL(info) << "successfully removed entity at " << path;
+  log_handle_request_details(std::string(path), "CrudHandler", NO_CONTENT_STATUS);
   http_response response;
   response.result(boost::beast::http::status::no_content);
   return response;
@@ -164,6 +176,7 @@ http_response CrudHandler::handle_delete(const fs::path &path) {
 http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
   // check if is directory
   if (filesystem_->is_directory(path)) {
+    log_handle_request_details(std::string(path), "CrudHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "CRUD[PUT]: cannot PUT to a directory; path: " << path;
     return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
@@ -173,6 +186,7 @@ http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
   filesystem_->write(path, data);
 
   // 204 no_content as response for PUT (check RFC for detail)  
+  log_handle_request_details(std::string(path), "CrudHandler", NO_CONTENT_STATUS);
   http_response response;
   response.result(boost::beast::http::status::no_content);
   return response;
@@ -181,6 +195,7 @@ http_response CrudHandler::handle_put(const fs::path &path, std::string data) {
 http_response CrudHandler::list(const fs::path &path) {
   std::optional<std::vector<fs::path>> file_paths_opt = filesystem_->list(path);
   if (!file_paths_opt.has_value()) {
+    log_handle_request_details(std::string(path), "CrudHandler", INTERNAL_SERVER_ERROR_STATUS);
     BOOST_LOG_TRIVIAL(debug)
         << "CRUD handler failed to list files at path " << path;
     return parseResponse(
@@ -197,6 +212,7 @@ http_response CrudHandler::list(const fs::path &path) {
   root.add_child("files", arr);
 
   // Serialize the JSON array to a string, and use that as the body
+  log_handle_request_details(std::string(path), "CrudHandler", OK_STATUS);
   std::stringstream ss;
   pt::write_json(ss, root);
   const std::string body = ss.str();

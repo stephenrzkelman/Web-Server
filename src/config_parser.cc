@@ -173,7 +173,7 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
 
 bool NginxConfigParser::Parse(std::istream *config_file, NginxConfig *config) {
   // Log and init parsing
-  BOOST_LOG_TRIVIAL(info) << "Starting Parse";
+  BOOST_LOG_TRIVIAL(debug) << "Starting Parse";
   std::stack<NginxConfig *> config_stack;
   config_stack.push(config);
   TokenType last_token_type = TOKEN_TYPE_START;
@@ -183,7 +183,7 @@ bool NginxConfigParser::Parse(std::istream *config_file, NginxConfig *config) {
     token_type = ParseToken(config_file, &token);
 
     // Log each token type followed by the token itself as parser loops
-    BOOST_LOG_TRIVIAL(info)
+    BOOST_LOG_TRIVIAL(debug)
         << std::string(TokenTypeAsString(token_type)) + ": " + token + "\n";
 
     if (token_type == TOKEN_TYPE_ERROR) {
@@ -295,7 +295,7 @@ NginxConfig::findDirectives(std::string directiveName) {
 }
 
 bool NginxConfig::Validate(std::string baseContextType) {
-  BOOST_LOG_TRIVIAL(info) << "Validating Top Level Directives";
+  BOOST_LOG_TRIVIAL(debug) << "Validating Top Level Directives";
   for (const auto &statement : statements_) {
     std::string statement_type = statement->tokens_[0];
     if (VALID_DIRECTIVES.contains(statement_type)) {
@@ -359,7 +359,7 @@ std::string NginxConfig::unquoteArg(std::string arg){
 std::optional<std::unordered_map<std::string, LocationData>>
 NginxConfig::findLocations() {
   if (this->contextName != MAIN) {
-    BOOST_LOG_TRIVIAL(info)
+    BOOST_LOG_TRIVIAL(warning)
         << "findLocations called from context other than main";
     return {};
   }
@@ -378,12 +378,12 @@ NginxConfig::findLocations() {
     }
     // no duplicate paths should be allowed
     if (locations.contains(path)) {
-      BOOST_LOG_TRIVIAL(info) << "duplicate path detected in config";
+      BOOST_LOG_TRIVIAL(warning) << "duplicate path detected in config";
       return {};
     }
     // provided handler must be registered
     if (!Registry::GetInstance().initializer_map_.contains(handler)) {
-      BOOST_LOG_TRIVIAL(info) << "Unregistered handler found: " << handler;
+      BOOST_LOG_TRIVIAL(warning) << "Unregistered handler found: " << handler;
       return {};
     }
     LocationData location_data;
@@ -394,7 +394,7 @@ NginxConfig::findLocations() {
     for (auto &statement : location_block->statements_) {
       // must provide exactly one keyword and one argument
       if (statement->tokens_.size() != 2) {
-        BOOST_LOG_TRIVIAL(info) << "Location with path " << path
+        BOOST_LOG_TRIVIAL(warning) << "Location with path " << path
                                 << " contains directive with more than 2 "
                                    "tokens (keyword, argument)";
         return {};
@@ -402,13 +402,13 @@ NginxConfig::findLocations() {
       std::string keyword = statement->tokens_[0];
       // no arguments may be provided twice
       if (location_data.arg_map_.contains(keyword)) {
-        BOOST_LOG_TRIVIAL(info) << "Location with path " << path
+        BOOST_LOG_TRIVIAL(warning) << "Location with path " << path
                                 << " contains duplicate directive " << keyword;
         return {};
       }
       // only expected arguments may be provided
       if (!expected_args.contains(keyword)) {
-        BOOST_LOG_TRIVIAL(info)
+        BOOST_LOG_TRIVIAL(warning)
             << "Handler " << handler << " received unrecognized directive "
             << keyword;
         return {};
@@ -417,7 +417,7 @@ NginxConfig::findLocations() {
       location_data.arg_map_.insert({keyword, value});
     }
     if (expected_args.size() != location_data.arg_map_.size()) {
-      BOOST_LOG_TRIVIAL(info)
+      BOOST_LOG_TRIVIAL(warning)
           << "Hander " << handler << " expected " << expected_args.size()
           << " directive(s), received " << location_data.arg_map_.size();
       return {};

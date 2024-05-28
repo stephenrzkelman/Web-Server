@@ -31,8 +31,7 @@ void server::start_accept() {
 void server::handle_accept(session *new_session,
                            const boost::system::error_code &error) {
   BOOST_LOG_NAMED_SCOPE("Handle Accept")
-  BOOST_LOG_TRIVIAL(info)
-      << "New connection request received, starting to accept it";
+  BOOST_LOG_TRIVIAL(info) << "New connection request received, starting to accept it";
   if (!error) {
     new_session->start();
 
@@ -40,9 +39,7 @@ void server::handle_accept(session *new_session,
     tcp::socket &socket = new_session->socket();
     asio::ip::tcp::endpoint remoteEndpoint = socket.remote_endpoint();
     asio::ip::address ipAddress = remoteEndpoint.address();
-    BOOST_LOG_TRIVIAL(info)
-        << "Request is coming from ip: " << ipAddress.to_string();
-
+    BOOST_LOG_TRIVIAL(info) << "Request is coming from ip: " << ipAddress.to_string();
   } else {
     delete new_session;
   }
