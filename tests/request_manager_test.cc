@@ -38,6 +38,8 @@ protected:
   NginxConfig full_parsed_config;
   std::string not_found_header = "HTTP/1.1 404 Not Found\r\nContent-Type: "
                                  "text/plain\r\nContent-Length: 0\r\n\r\n";
+  std::string bad_request_header ="HTTP/1.1 400 Bad Request\r\nContent-Type: "
+                                 "text/plain\r\nContent-Length: 0\r\n\r\n";
 };
 
 TEST_F(RequestManagerTest, ManageEchoRequestTest) {
@@ -96,4 +98,13 @@ TEST_F(RequestManagerTest, ManageNonexistentRequestTest) {
   boost::asio::mutable_buffer request = boost::asio::buffer(request_string);
   SetUp("configs/all_items_config");
   manage_request_success(request, not_found_header);
+}
+
+TEST_F(RequestManagerTest, ManageMalformedRequestTest) {
+  std::string request_string =
+      "GT / HTTP/1.1\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\nConnection: "
+      "keep-alive\r\n\r\n";
+  boost::asio::mutable_buffer request = boost::asio::buffer(request_string);
+  SetUp("configs/all_items_config");
+  manage_request_success(request, bad_request_header);
 }

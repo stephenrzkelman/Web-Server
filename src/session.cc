@@ -21,6 +21,10 @@ void session::start() {
 void session::handle_read(const boost::system::error_code &error,
                           size_t bytes_transferred) {
   if (error) {
+    BOOST_LOG_TRIVIAL(error) << "Problem parsing the http request: "  << error.message();
+    response_.result(boost::beast::http::status::bad_request);
+    response_.set(boost::beast::http::field::content_type, "text/plain");
+    boost::beast::http::write(socket_, response_);
     delete this;
     return;
   }

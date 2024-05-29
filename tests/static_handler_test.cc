@@ -15,8 +15,7 @@ protected:
     std::shared_ptr<RequestHandler> static_handler;
     static_handler.reset(
         new StaticHandler("/static", {{"root", root_directory}}, std::make_unique<FileSystem>()));
-    http_request data;
-    data.target(rel_path);
+    http_request data {boost::beast::http::verb::get,rel_path,11};
     static_handler->handle_request(data);
     EXPECT_EQ(static_handler->getLastResponse(), expected_response);
   }

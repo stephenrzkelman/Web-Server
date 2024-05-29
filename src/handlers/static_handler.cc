@@ -8,6 +8,13 @@ StaticHandler::StaticHandler(std::string path,
     filesystem_(std::move(filesystem))  {}
 
 http_response StaticHandler::handle_request(const http_request &request) {
+  BOOST_LOG_TRIVIAL(info) << "Handling static request";
+  //Only respond to GET requests
+  if (request.method() != boost::beast::http::verb::get){
+    lastResponseHeader = makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0);
+    lastResponse = lastResponseHeader;
+    return parseResponse(lastResponse);
+  }
   RESPONSE_CODE status_code;
   std::string content_type;
   uintmax_t content_length = 0;

@@ -9,6 +9,12 @@ EchoHandler::EchoHandler() {}
 // body of a predefined response through a buffer sequence. Returns buffer
 // sequence.
 http_response EchoHandler::handle_request(const http_request &request) {
+  //Only echo GET requests
+  if (request.method() != boost::beast::http::verb::get){
+    lastResponseHeader = makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0);
+    lastResponse = lastResponseHeader;
+    return parseResponse(lastResponse);
+  }
   // Convert the request to a string
   log_handle_request_details(std::string(request.target()), "EchoHandler", OK_STATUS);
   std::stringstream reqstream;
