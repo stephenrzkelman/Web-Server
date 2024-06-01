@@ -51,6 +51,7 @@ add_library(crud_handler_lib OBJECT src/handlers/crud_handler.cc)
 add_library(health_handler_lib OBJECT src/handlers/health_handler.cc)
 add_library(sleep_handler_lib OBJECT src/handlers/sleep_handler.cc)
 add_library(markdown_parser_lib src/markdown_parser.cc)
+add_library(markdown_handler_lib OBJECT src/handlers/markdown_handler.cc)
 
 # Update C++ version for files that need cpp20 features like contains()
 target_compile_features(manager_lib PUBLIC cxx_std_20)
@@ -70,6 +71,7 @@ target_link_libraries(
     crud_handler_lib
     echo_handler_lib
     sleep_handler_lib
+    markdown_handler_lib
     Boost::log_setup Boost::log
 )
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
@@ -78,6 +80,7 @@ target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
 target_link_libraries(crud_handler_lib handler_lib filesystem_lib Boost::filesystem Boost::log_setup Boost::log)
 target_link_libraries(health_handler_lib handler_lib Boost::log_setup Boost::log)
 target_link_libraries(sleep_handler_lib Boost::log_setup Boost::log)
+target_link_libraries(markdown_handler_lib handler_lib markdown_parser_lib filesystem_lib Boost::filesystem Boost::log_setup Boost::log)
 
 # add server executable
 add_executable(server src/server_main.cc)
@@ -90,6 +93,7 @@ target_link_libraries(
     crud_handler_lib
     health_handler_lib
     sleep_handler_lib
+    markdown_handler_lib
     session_lib 
     server_lib 
     manager_lib 
@@ -106,8 +110,13 @@ target_link_libraries(
     static_handler_lib
     crud_handler_lib
     echo_handler_lib
+    markdown_handler_lib
     gtest_main
 )
+
+add_executable(filesystem_test tests/filesystem_test.cc)
+target_compile_features(filesystem_test PUBLIC cxx_std_20)
+target_link_libraries(filesystem_test filesystem_lib Boost::filesystem gtest_main)
 
 add_executable(echo_handler_test tests/echo_handler_test.cc)
 target_link_libraries(echo_handler_test echo_handler_lib gtest_main)
@@ -141,6 +150,10 @@ target_link_libraries(static_handler_test static_handler_lib gtest_main)
 add_executable(health_handler_test tests/health_handler_test.cc)
 target_link_libraries(health_handler_test health_handler_lib gtest_main)
 
+add_executable(markdown_handler_test tests/markdown_handler_test.cc)
+target_compile_features(markdown_handler_test PUBLIC cxx_std_20)
+target_link_libraries(markdown_handler_test markdown_handler_lib gtest_main)
+
 # Update with test binary
 gtest_discover_tests(config_parser_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(echo_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
@@ -148,8 +161,10 @@ gtest_discover_tests(manager_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
 gtest_discover_tests(static_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(server_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(error_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(filesystem_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(crud_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(health_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(markdown_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
@@ -166,6 +181,7 @@ generate_coverage_report(
         manager_lib  
         server_lib  
         location_data_lib
+        markdown_handler_lib
     TESTS 
         config_parser_test 
         echo_handler_test 
@@ -174,7 +190,9 @@ generate_coverage_report(
         static_handler_test
         server_test
         error_handler_test
+        filesystem_test
         crud_handler_test 
+        markdown_handler_test
 )
 
 # Add integration test

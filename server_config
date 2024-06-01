@@ -23,5 +23,8 @@ location /api CrudHandler{
     # TODO: change as needed
     data_path ./crud_files;
 }
+location /markdown MarkdownHandler{
+    data_path ./markdown_files;
+}
 location /sleep SleepHandler{
 }

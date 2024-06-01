@@ -23,3 +23,6 @@ location /static1234 StaticHandler{
 location /api CrudHandler{
     data_path /mnt/storage/crud_files;
 }
+location /markdown MarkdownHandler{
+    data_path /mnt/storage/markdown_files;
+}
