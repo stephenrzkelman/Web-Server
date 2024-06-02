@@ -52,13 +52,11 @@ add_library(health_handler_lib OBJECT src/handlers/health_handler.cc)
 add_library(sleep_handler_lib OBJECT src/handlers/sleep_handler.cc)
 add_library(markdown_parser_lib src/markdown_parser.cc)
 add_library(markdown_handler_lib OBJECT src/handlers/markdown_handler.cc)
+add_library(markdown_lib src/markdown.cc src/markdown_tokens.cc)
 
 # Update C++ version for files that need cpp20 features like contains()
 target_compile_features(manager_lib PUBLIC cxx_std_20)
 target_compile_features(config_parser_lib PUBLIC cxx_std_20)
-
-# Update C++ version for files that need cpp17 features like std::optional
-target_compile_features(markdown_parser_lib PUBLIC cxx_std_17)
 
 # Add necessary links for server, session, handlers, and helpers
 target_link_libraries(server_lib session_lib signal_lib)
@@ -81,6 +79,8 @@ target_link_libraries(crud_handler_lib handler_lib filesystem_lib Boost::filesys
 target_link_libraries(health_handler_lib handler_lib Boost::log_setup Boost::log)
 target_link_libraries(sleep_handler_lib Boost::log_setup Boost::log)
 target_link_libraries(markdown_handler_lib handler_lib markdown_parser_lib filesystem_lib Boost::filesystem Boost::log_setup Boost::log)
+target_link_libraries(markdown_lib PUBLIC boost_regex)
+target_link_libraries(markdown_parser_lib markdown_lib)
 
 # add server executable
 add_executable(server src/server_main.cc)
