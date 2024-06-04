@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Create Markdown File</title>
+        <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+        <script>
+            function getTargetURL() {
+                let doc = document.getElementById("md-file-name").value;
+                return `http://fortnite-gamers.com/markdown/${doc}`;
+            }
+            function getMarkdownFileContents() {
+                return document.getElementById("md-file-contents").value;
+            }
+            function sendFile() {
+                let targetURL = getTargetURL();
+                let file = getMarkdownFileContents();
+                let file_length = file.length;
+                fetch(targetURL, {
+                    method: "POST",
+                    body: file,
+                    headers: {
+                        "Content-type": "text/markdown",
+                        "Content-length": file_length
+                    }
+                }).then((response) => {
+                    if(response.ok) {
+                        document.getElementById("header").innerHTML = "Success!";
+                        document.getElementById("contents").innerHTML = "See your new markdown file here:";
+                        let link = document.createElement("a");
+                        link.appendChild(targetURL);
+                        link.href = targetURL;
+                        link.target = "_blank";
+                    }
+                    else {
+                        document.getElementById("header").innerHTML = "Error:";
+                        document.getElementById("contents").innerHTML = "We couldn't create your HTML file";
+                    }
+                })
+            }
+        </script>
+    </head>
+    <body>
+        <h1 id="header">
+            Create a Markdown file!
+        </h1>
+        <div id="contents">
+            <form>
+                <input placeholder="Markdown File Name" id="md-file-name">
+                <br><br>
+                <textarea id="md-file-contents" cols=100 rows = 70 placeholder="Markdown File Contents"></textarea>
+                <br><br>
+                <button onClick="sendFile()">Create!</button>
+            </form>
+        </div>
+    </body>
+</html>

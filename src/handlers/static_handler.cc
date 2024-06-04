@@ -43,6 +43,10 @@ http_response StaticHandler::handle_request(const http_request &request) {
       BOOST_LOG_TRIVIAL(info) << "Jpeg file requested";
       content_type = IMAGE_JPEG;
       break;
+    case ICO_FILE:
+      BOOST_LOG_TRIVIAL(info) << "ICO file requested";
+      content_type = IMAGE_X_ICON;
+      break;
     case HTML_FILE:
       BOOST_LOG_TRIVIAL(info) << "HTML file requested";
       content_type = TEXT_HTML;

@@ -19,6 +19,12 @@ location /static85 StaticHandler{
 location /static1234 StaticHandler{
     root '/usr/src/projects/fortnite-gamers/files/static attic';
 }
+location /markdown-manager StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files/markdown-pages;
+}
+location /images StaticHandler{
+    root /usr/src/projects/fortnite-gamers/files/images;
+}
 location /api CrudHandler{
     # TODO: change as needed
     data_path ./crud_files;

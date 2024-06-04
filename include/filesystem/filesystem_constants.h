@@ -5,6 +5,7 @@
 const std::string TEXT_FILE_EXT = ".txt";
 const std::string JPG_FILE_EXT = ".jpg";
 const std::string JPEG_FILE_EXT = ".jpeg";
+const std::string ICO_FILE_EXT = ".ico";
 const std::string HTML_FILE_EXT = ".html";
 const std::string ZIP_FILE_EXT = ".zip";
 const std::string MARKDOWN_FILE_EXT = ".md";
@@ -15,13 +16,15 @@ enum FILE_TYPE {
     JPG_FILE = 2,
     HTML_FILE = 3,
     ZIP_FILE = 4,
-    MARKDOWN_FILE = 5
+    MARKDOWN_FILE = 5,
+    ICO_FILE = 6
 };
 // file type mapping
 const std::unordered_map<std::string, FILE_TYPE> FILE_TYPE_MAP = {
     {TEXT_FILE_EXT, TEXT_FILE},
     {JPEG_FILE_EXT, JPG_FILE},
     {JPG_FILE_EXT, JPG_FILE},
+    {ICO_FILE_EXT, ICO_FILE},
     {HTML_FILE_EXT, HTML_FILE},
     {ZIP_FILE_EXT, ZIP_FILE},
     {MARKDOWN_FILE_EXT, MARKDOWN_FILE}

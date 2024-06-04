@@ -17,6 +17,7 @@ const std::string CRLF = "\r\n";
 const std::string TEXT_PLAIN = "text/plain";
 const std::string TEXT_HTML = "text/html";
 const std::string IMAGE_JPEG = "image/jpeg";
+const std::string IMAGE_X_ICON = "image/x-icon";
 const std::string APPLICATION_ZIP = "application/zip";
 const std::string JSON = "application/json";
 const std::string MARKDOWN = "text/markdown";
