@@ -72,6 +72,8 @@ target_link_libraries(
     markdown_handler_lib
     Boost::log_setup Boost::log
 )
+target_link_libraries(markdown_lib PUBLIC Boost::regex)
+target_link_libraries(markdown_parser_lib markdown_lib)
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
 target_link_libraries(static_handler_lib handler_lib filesystem_lib Boost::log_setup Boost::log)
 target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
@@ -79,8 +81,6 @@ target_link_libraries(crud_handler_lib handler_lib filesystem_lib Boost::filesys
 target_link_libraries(health_handler_lib handler_lib Boost::log_setup Boost::log)
 target_link_libraries(sleep_handler_lib Boost::log_setup Boost::log)
 target_link_libraries(markdown_handler_lib handler_lib markdown_parser_lib filesystem_lib Boost::filesystem Boost::log_setup Boost::log)
-target_link_libraries(markdown_lib PUBLIC boost_regex)
-target_link_libraries(markdown_parser_lib markdown_lib)
 
 # add server executable
 add_executable(server src/server_main.cc)

@@ -1,5 +1,6 @@
 #include "handlers/markdown_handler.h"
 #include "filesystem/filesystem.h"
+#include "markdown_parser.h"
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -46,9 +47,27 @@ MarkdownHandler::Init(std::string path,
 }
 
 http_response MarkdownHandler::handle_get(const fs::path &path) {
-  // Temp response
-  const std::string body = "markdown get handled";
-  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
+  FILE_TYPE file_type = filesystem_->fileType(path);
+  if (file_type != MARKDOWN_FILE) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    BOOST_LOG_TRIVIAL(warning)
+        << "MARKDOWN[GET]: file requested to read is not a Markdown file " << path;
+    return parseResponse(
+        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+  const std::optional<std::string> file_opt = filesystem_->read(path);
+  if (!file_opt.has_value()) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    BOOST_LOG_TRIVIAL(warning)
+        << "MARKDOWN[GET]: failed to read file at path " << path;
+    return parseResponse(
+        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+
+  log_handle_request_details(std::string(path), "MarkdownHandler", OK_STATUS);
+  MarkdownParser parser = MarkdownParser();
+  const std::string body =  parser.parse_markdown(file_opt.value());
+  const std::string header = makeHeader(OK_STATUS, TEXT_HTML, body.size());
   return parseResponse(header + body);
 }
 
@@ -69,7 +88,7 @@ http_response MarkdownHandler::handle_post(const fs::path &path, std::string dat
   if (!filesystem_->create_directories(path)) {
     log_handle_request_details(std::string(path), "MarkdownHandler", INTERNAL_SERVER_ERROR_STATUS);
     BOOST_LOG_TRIVIAL(warning)
-        << "CRUD[POST]: failing to create directories at path: " << path;
+        << "MARKDOWN[POST]: failing to create directories at path: " << path;
     return parseResponse(makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
 
@@ -79,7 +98,7 @@ http_response MarkdownHandler::handle_post(const fs::path &path, std::string dat
   if (!files_opt.has_value()) {
     log_handle_request_details(std::string(path), "MarkdownHandler", INTERNAL_SERVER_ERROR_STATUS);
     BOOST_LOG_TRIVIAL(error)
-        << "CRUD[POST]: failed to list files at " << path << ". The directory should have been created if it did not exist, but somehow, that did not happen";
+        << "MARKDOWN[POST]: failed to list files at " << path << ". The directory should have been created if it did not exist, but somehow, that did not happen";
     return parseResponse(
         makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
   }
@@ -93,7 +112,7 @@ http_response MarkdownHandler::handle_post(const fs::path &path, std::string dat
     } catch (const std::exception &e) {
       // Skip over non-numeric filenames
       BOOST_LOG_TRIVIAL(warning)
-          << "CRUD[POST]: non-numeric filename found: " << filename
+          << "MARKDOWN[POST]: non-numeric filename found: " << filename
           << "; skipping";
       continue;
     }
