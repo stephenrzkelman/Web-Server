@@ -1,0 +1,43 @@
+:root {
+  box-sizing: border-box;
+  font-family: Bangers;
+}
+
+* {
+  box-sizing: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  font-size: xx-large;
+  text-align: left;
+  color: white;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .5rem;
+  width: 50%;
+}
+
+body {
+  background-image: url(fortnite.png);
+  background-size: contain;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+textarea {
+  width: 100%;
+}
+
+#inputbuttons {
+  display: flex;
+  justify-content: flex-end;
+}

@@ -5,6 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Create Markdown File</title>
         <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+        <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Bangers" />
+        <link rel="stylesheet" href="styles.css">
         <script>
             function getTargetURL() {
                 let doc = document.getElementById("md-file-name").value;
@@ -44,15 +46,19 @@
         </script>
     </head>
     <body>
-        <h1 id="header">
-            Create a Markdown file!
-        </h1>
-        <div id="contents">
-            <input placeholder="Markdown File Name" id="md-file-name">
-            <br><br>
-            <textarea id="md-file-contents" cols=100 rows = 70 placeholder="Markdown File Contents"></textarea>
-            <br><br>
-            <button onclick="submitMarkdown()">Create!</button>
-        </div>
+        <header>
+            <h1 id="header">
+                Create a Markdown file!
+            </h1>
+            <div id="inputbuttons">
+                <input placeholder="Markdown File Name" id="md-file-name">
+                <button onclick="submitMarkdown()">Create!</button>
+            </div>
+        </header>
+        <main>
+            <div id="contents">
+                <textarea id="md-file-contents" cols=100 rows = 50 placeholder="Markdown File Contents"></textarea>
+            </div>
+        </main>
     </body>
 </html>
