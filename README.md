@@ -4,7 +4,7 @@
 
 ### Dependency Graph
 
-![](https://lh7-us.googleusercontent.com/A-fN6mdJkyFPPl9GTz4_EepWTbPVGLpjK4u1xNK5KhQ-t3MoCrfCMehk26ne-sZRdjVbag6ERr_hIpqrlynITqHk-mZY3LTOrMpvv6FaqKYrqtGB8XAnZRUxoBzDyGzxsy81RYJ6_2lxJLMixN71IPU)
+![Dependency Graph Image](https://lh7-us.googleusercontent.com/docsz/AD_4nXcxzx1V8w1aazewRRXnD16AHFiWX-_khnrIq7j4eMCGhh3tGPSXS2ReK5LRhg55v5j5mEPKUuhhyzRs-yBl32YmAUGdIj2LANMHqA8u5EKq0oAIupxpYjaUgZiBenrmbhKEhBeWjhE8ZZYY2dUDj5xjS1yT?key=dXuRdM3tReV7ipJFJYEsrg)
 
 
 ### Code Flow
@@ -40,23 +40,23 @@ This, together with the build step above, can be run **from the base directory**
 
 ### Coverage
 
-To check test coverage, go to the **base directory of the repository** **in the dev env**, and run: 
+To check test coverage, go to the **base directory of the repository** **in the dev env**, and run:
 
     ./clean_coverage.sh
 
-The coverage results can be found in “build\_coverage/”, and you can view results in your browser via “build\_coverage/index.html”
+The coverage results can be found in "build\_coverage", and you can view results in your browser via "build\_coverage/index.html"
 
 
 ### Run
 
-To simulate running code on Cloud Build, navigate to fortnite-gamers and run start\_docker.sh **outside of the cs130 development environment.** Alternatively, follow the instructions in DockerREADME.md. 
+To simulate running code on Cloud Build, navigate to fortnite-gamers and run start\_docker.sh **outside of the cs130 development environment.** Alternatively, follow the instructions in DockerREADME.md.
 
 
 ## Adding a Request Handler
 
 1. Add your newHandler.h file
 
-   a. You need to include “registry.h” along with “request\_handler.h”
+   a. You need to include "registry.h" along with "request\_handler.h"
 
    b. Your handler must contain a static function of the form:
 
@@ -128,7 +128,7 @@ StaticHandler.cc example:
 
 
     http_response StaticHandler::handle_request(const http_request& request) {
-      ...
+        ...
     }
 
     RequestHandler* StaticHandler::Init(std::string path, std::unordered_map<std::string, std::string> args){
@@ -138,11 +138,11 @@ StaticHandler.cc example:
 
 3. Modify CMakeLists.txt
 
-    a. Add handler library with add\_library under the comment “#Add server, session, handler, and helper libraries”
+    a. Add handler library with add\_library under the comment "#Add server, session, handler, and helper libraries"
 
         add_library(static_handler_lib OBJECT src/handlers/static_handler.cc)
 
-    b. Use target\_link\_libraries to add any needed includes under the comment “# Add necessary links for server, session, handlers, and helpers” 
+    b. Use target\_link\_libraries to add any needed includes under the comment "# Add necessary links for server, session, handlers, and helpers"
 
         target_link_libraries(static_handler_lib handler_lib file_reader_lib Boost::filesystem Boost::log_setup Boost::log)
 
@@ -162,7 +162,7 @@ StaticHandler.cc example:
             Boost::system
         )
 
-    d. Create an executable for the test file with add\_executable and target\_link\_libraries under the comment “# Update test executable name, srcs, and deps”
+    d. Create an executable for the test file with add\_executable and target\_link\_libraries under the comment "# Update test executable name, srcs, and deps"
 
         add_executable(static_handler_test tests/static_handler_test.cc)
         target_link_libraries(static_handler_test static_handler_lib gtest_main)
