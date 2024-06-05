@@ -26,9 +26,9 @@ http_response MarkdownHandler::handle_request(const http_request &request) {
 
   if (request.method() == boost::beast::http::verb::get) {
     return handle_get(target);
-  } else if (request.method() == boost::beast::http::verb::post &&
+  } else if (request.method() == boost::beast::http::verb::put &&
                 request.at(boost::beast::http::field::content_type) == MARKDOWN) {
-    return handle_post(target, request.body());
+    return handle_put(target, request.body());
   } else if (request.method() == boost::beast::http::verb::delete_) {
     return handle_delete(target);
   }
@@ -71,62 +71,24 @@ http_response MarkdownHandler::handle_get(const fs::path &path) {
   return parseResponse(header + body);
 }
 
-http_response MarkdownHandler::handle_post(const fs::path &path, std::string data) {
-  // Temp response
-  const fs::path data_path{data_path_};
-
-  // Remove trailing slash from the path
-  std::string normal_path = path.string();
-  if (!normal_path.empty() && normal_path.back() == '/') {
-    normal_path.pop_back();
-  }
-  const fs::path normal_fs_path{normal_path};
-
-  const auto data_path_len = std::distance(data_path.begin(), data_path.end());
-  const auto path_len =
-      std::distance(normal_fs_path.begin(), normal_fs_path.end());
-  if (!filesystem_->create_directories(path)) {
-    log_handle_request_details(std::string(path), "MarkdownHandler", INTERNAL_SERVER_ERROR_STATUS);
+http_response MarkdownHandler::handle_put(const fs::path &path, std::string data) {
+  FILE_TYPE file_type = filesystem_->fileType(path);
+  if (file_type != MARKDOWN_FILE) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
-        << "MARKDOWN[POST]: failing to create directories at path: " << path;
-    return parseResponse(makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
-  }
-
-  // get a vector of the existing files at path 
-  const std::optional<std::vector<fs::path>> files_opt =
-      filesystem_->list(path);
-  if (!files_opt.has_value()) {
-    log_handle_request_details(std::string(path), "MarkdownHandler", INTERNAL_SERVER_ERROR_STATUS);
-    BOOST_LOG_TRIVIAL(error)
-        << "MARKDOWN[POST]: failed to list files at " << path << ". The directory should have been created if it did not exist, but somehow, that did not happen";
+        << "MARKDOWN[PUT]: file requested to put is not a Markdown file " << path;
     return parseResponse(
-        makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
+        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
 
-  // Get maximal ID in the path 
-  int maxID = 0;
-  for (const auto &filepath : files_opt.value()) {
-    const std::string filename = filepath.filename().string();
-    try {
-      maxID = std::max(maxID, std::stoi(filename));
-    } catch (const std::exception &e) {
-      // Skip over non-numeric filenames
-      BOOST_LOG_TRIVIAL(warning)
-          << "MARKDOWN[POST]: non-numeric filename found: " << filename
-          << "; skipping";
-      continue;
-    }
-  }
+  // write new body
+  filesystem_->write(path, data);
 
-  // Increment ID, and make a new file in the path with new ID
-  int newID = maxID + 1;
-  filesystem_->write(path / std::to_string(newID), data);
-
-  // Return response with body indicating the id written to
-  log_handle_request_details(std::string(path), "MarkdownHandler", OK_STATUS);
-  const std::string body = std::to_string(newID); 
-  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
-  return parseResponse(header + body);
+  // 204 no_content as response for PUT (check RFC for detail)  
+  log_handle_request_details(std::string(path), "MarkdownHandler", NO_CONTENT_STATUS);
+  http_response response;
+  response.result(boost::beast::http::status::no_content);
+  return response;
 }
 
 http_response MarkdownHandler::handle_delete(const fs::path &path) {
