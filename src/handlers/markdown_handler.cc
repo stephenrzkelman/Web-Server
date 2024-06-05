@@ -92,8 +92,34 @@ http_response MarkdownHandler::handle_put(const fs::path &path, std::string data
 }
 
 http_response MarkdownHandler::handle_delete(const fs::path &path) {
-  // Temp response
-  const std::string body = "markdown delete handled";
-  const std::string header = makeHeader(OK_STATUS, TEXT_PLAIN, body.size());
-  return parseResponse(header + body);
+  // no specific file name/id given, trying to delete directory
+  if (filesystem_->is_directory(path)) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    BOOST_LOG_TRIVIAL(warning) << "MARKDOWN[DELETE]: request target " << path
+                               << " is not a valid path element, trying to delete a directory";
+    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+
+  // file DNE
+  if (!filesystem_->exists(path)) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    BOOST_LOG_TRIVIAL(debug)
+        << "MARKDOWN[DELETE]: file at " << path << " does not exist";
+    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+
+  // couldn't remove
+  if (!filesystem_->remove(path)) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", INTERNAL_SERVER_ERROR_STATUS);
+    BOOST_LOG_TRIVIAL(debug)
+        << "MARKDOWN[DELETE]: couldn't remove file at " << path;
+    return parseResponse(
+        makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, 0));
+  }
+
+  // successful removal
+  log_handle_request_details(std::string(path), "MarkdownHandler", NO_CONTENT_STATUS);
+  http_response response;
+  response.result(boost::beast::http::status::no_content);
+  return response;
 }
