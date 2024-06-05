@@ -300,6 +300,51 @@ faucibus purus in massa. Ultricies integer quis auctor elit sed.\"\r\n\r\n'''
         args=['-X', 'GET', 'localhost:80/api/test']
     )
 
+    ## Markdown Handler Tests
+    # GET request for a nonexistant file 
+    tester.test_case_curl( 
+        name="test_curl_MARKDOWN_GET_nonexistant",
+        expected="",
+        args=['-X', 'GET', 'localhost:80/markdown/dne.md']
+
+    )
+
+    # PUT request to create a file 
+    put_data = "markdown content"
+    tester.test_case_curl(
+        name="test_curl_MARKDOWN_PUT_creation",
+        expected="",
+        args=['-X', 'PUT', '-d', put_data, '-H', 'Content-Type: text/markdown', 'localhost:80/markdown/test.md']
+    ) 
+
+    # PUT request for a non markdown file should fail
+    tester.test_case_curl(
+        name="test_curl_MARKDOWN_PUT_not_markdown",
+        expected="",
+        args=['-X', 'PUT', '-d', put_data, '-H', 'Content-Type: text/markdown', 'localhost:80/markdown/not_md_file']
+    ) 
+
+    # GET request to check that test.md was created with proper content 
+    tester.test_case_curl(
+        name="test_curl_MARKDOWN_GET",
+        expected="<p>markdown content</p>\n\n",
+        args=['-X', 'GET', 'localhost:80/markdown/test.md']
+    )
+
+    # DELETE request to cleanup 
+    tester.test_case_curl(
+        name="test_curl_MARKDOWN_DELETE",
+        expected="",
+        args=['-X', 'DELETE', 'localhost:80/markdown/test.md']
+    )
+
+    # GET request to find test.md should no longer return content since it was deleted
+    tester.test_case_curl(
+        name="test_curl_MARKDOWN_GET_after_delete",
+        expected="",
+        args=['-X', 'GET', 'localhost:80/markdown/test.md']
+    )
+
     # Finished test cases, close server
     tester.end_server()
     tester.print_results()
