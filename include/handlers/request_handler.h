@@ -16,6 +16,7 @@ const std::string CRLF = "\r\n";
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
 const std::string TEXT_PLAIN = "text/plain";
 const std::string TEXT_HTML = "text/html";
+const std::string TEXT_CSS = "text/css";
 const std::string IMAGE_JPEG = "image/jpeg";
 const std::string IMAGE_X_ICON = "image/x-icon";
 const std::string APPLICATION_ZIP = "application/zip";

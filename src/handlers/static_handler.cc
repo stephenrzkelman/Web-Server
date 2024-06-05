@@ -55,6 +55,10 @@ http_response StaticHandler::handle_request(const http_request &request) {
       BOOST_LOG_TRIVIAL(info) << "Zip file requested";
       content_type = APPLICATION_ZIP;
       break;
+    case CSS_FILE:
+      BOOST_LOG_TRIVIAL(info) << "CSS file requested";
+      content_type = TEXT_CSS;
+      break;
     }
   }
   content_length += responseString.size();

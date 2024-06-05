@@ -9,6 +9,7 @@ const std::string ICO_FILE_EXT = ".ico";
 const std::string HTML_FILE_EXT = ".html";
 const std::string ZIP_FILE_EXT = ".zip";
 const std::string MARKDOWN_FILE_EXT = ".md";
+const std::string CSS_FILE_EXT = ".css";
 // file type enum
 enum FILE_TYPE {
     NO_MATCHING_TYPE = 0,
@@ -17,7 +18,8 @@ enum FILE_TYPE {
     HTML_FILE = 3,
     ZIP_FILE = 4,
     MARKDOWN_FILE = 5,
-    ICO_FILE = 6
+    ICO_FILE = 6,
+    CSS_FILE = 7
 };
 // file type mapping
 const std::unordered_map<std::string, FILE_TYPE> FILE_TYPE_MAP = {
@@ -27,5 +29,6 @@ const std::unordered_map<std::string, FILE_TYPE> FILE_TYPE_MAP = {
     {ICO_FILE_EXT, ICO_FILE},
     {HTML_FILE_EXT, HTML_FILE},
     {ZIP_FILE_EXT, ZIP_FILE},
-    {MARKDOWN_FILE_EXT, MARKDOWN_FILE}
+    {MARKDOWN_FILE_EXT, MARKDOWN_FILE},
+    {CSS_FILE_EXT, CSS_FILE}
 };
