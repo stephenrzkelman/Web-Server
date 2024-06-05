@@ -99,3 +99,64 @@ TEST_F(MarkdownHandlerTest, PutSuccessNoFile) {
   EXPECT_EQ(response_get.body(), "<p>NEW BODY BURNS</p>\n\n");
 
 }
+
+// Deleting a directory is not allowed per design specifications of the MarkdownHandler. A bad request response should be returned
+TEST_F(MarkdownHandlerTest, DeleteDirectory){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+
+  const std::string body = "A file inside of a directory";
+  const std::string file_path = "/mnt/markdown/dir/file.md";
+
+  // 1: Write the file to the fake filesystem
+  filesystem->write(file_path, body);
+
+  // 2: Create the CrudHandler and make a DELETE request
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+
+  http_request delete_request;
+  delete_request.method(boost::beast::http::verb::delete_);
+  delete_request.target("/markdown/dir");
+  http_response response = handler.handle_request(delete_request);
+
+  EXPECT_EQ(response.result(), boost::beast::http::status::bad_request);
+  EXPECT_EQ(response.body(), "");
+}
+
+// Deleting a file should work, deleting a non-existing file should trigger an error response
+TEST_F(MarkdownHandlerTest, DeleteFile){
+    std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+
+  const std::string body = "File to be deleted";
+  const std::string file_path = "/mnt/markdown/file.md";
+
+  // 1: Write the file to the fake filesystem
+  filesystem->write(file_path, body);
+
+  // 2: Create the CrudHandler and make a DELETE request
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+
+  http_request delete_request;
+  delete_request.method(boost::beast::http::verb::delete_);
+  delete_request.target("/markdown/file.md");
+  http_response response = handler.handle_request(delete_request);
+
+  // 3: Verify that the file is deleted successfully
+  EXPECT_EQ(response.result(), boost::beast::http::status::no_content);
+  EXPECT_EQ(response.body(), "");
+
+  // 4: Confirm that the file no longer exists in the filesystem
+  http_request get_request;
+  get_request.method(boost::beast::http::verb::get);
+  get_request.target("markdown/file.md");
+  http_response get_response = handler.handle_request(get_request);
+  EXPECT_EQ(get_response.result(), boost::beast::http::status::bad_request);
+
+  // 5. Delete something that isn't there since it was just deleted
+  http_request bad_del_request;
+  bad_del_request.method(boost::beast::http::verb::delete_);
+  bad_del_request.target("/markdown/file.md");
+  http_response bad_del_response = handler.handle_request(bad_del_request);
+
+  EXPECT_EQ(bad_del_response.result(), boost::beast::http::status::bad_request);
+  EXPECT_EQ(bad_del_response.body(), "");
+}
