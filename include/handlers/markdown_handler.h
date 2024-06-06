@@ -22,6 +22,8 @@ public:
 
 private:
   http_response handle_get(const std::filesystem::path &path);
+  http_response handle_post(const std::filesystem::path &path,
+                            std::string data);
   http_response handle_put(const std::filesystem::path &path,
                             std::string data);
   http_response handle_delete(const std::filesystem::path &path);

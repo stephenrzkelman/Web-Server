@@ -8,7 +8,7 @@ protected:
   void SetUp() override {}
 };
 
-TEST_F(MarkdownHandlerTest, PutSuccess) {
+TEST_F(MarkdownHandlerTest, PostSuccess) {
   std::unique_ptr<FileSystemInterface> filesystem =
       std::make_unique<FakeFileSystem>();
   // define some dummy vals
@@ -22,7 +22,7 @@ TEST_F(MarkdownHandlerTest, PutSuccess) {
 
   // make request
   http_request ok_request;
-  ok_request.method(boost::beast::http::verb::put);
+  ok_request.method(boost::beast::http::verb::post);
   ok_request.set(boost::beast::http::field::content_type, MARKDOWN);
   ok_request.target("/markdown/burns.md");
   ok_request.body() = "NEW BODY BURNS";
@@ -66,7 +66,7 @@ TEST_F(MarkdownHandlerTest, PutFailureDirectory) {
   EXPECT_EQ(response.result(), boost::beast::http::status::bad_request);
 }
 
-TEST_F(MarkdownHandlerTest, PutSuccessNoFile) {
+TEST_F(MarkdownHandlerTest, PostSuccessNewFile) {
   std::unique_ptr<FileSystemInterface> filesystem =
       std::make_unique<FakeFileSystem>();
   // define some dummy vals
@@ -80,7 +80,7 @@ TEST_F(MarkdownHandlerTest, PutSuccessNoFile) {
 
   // make request
   http_request ok_request;
-  ok_request.method(boost::beast::http::verb::put);
+  ok_request.method(boost::beast::http::verb::post);
   ok_request.set(boost::beast::http::field::content_type, MARKDOWN);
   ok_request.target("/mnt/markdown/santaslittlehelper.md");
   ok_request.body() = "NEW BODY BURNS";
@@ -147,7 +147,7 @@ TEST_F(MarkdownHandlerTest, DeleteFile){
   // 4: Confirm that the file no longer exists in the filesystem
   http_request get_request;
   get_request.method(boost::beast::http::verb::get);
-  get_request.target("markdown/file.md");
+  get_request.target("/markdown/file.md");
   http_response get_response = handler.handle_request(get_request);
   EXPECT_EQ(get_response.result(), boost::beast::http::status::bad_request);
 
@@ -159,4 +159,74 @@ TEST_F(MarkdownHandlerTest, DeleteFile){
 
   EXPECT_EQ(bad_del_response.result(), boost::beast::http::status::bad_request);
   EXPECT_EQ(bad_del_response.body(), "");
+}
+
+TEST_F(MarkdownHandlerTest, UnsupportedRequestType){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+  http_request options_request;
+  options_request.method(boost::beast::http::verb::options);
+  options_request.target("/markdown/file.md");
+  http_response options_response = handler.handle_request(options_request);
+  EXPECT_EQ(options_response.result(), boost::beast::http::status::bad_request);
+}
+
+TEST_F(MarkdownHandlerTest, NonMarkdownGetRequested){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+  http_request get_request;
+  get_request.method(boost::beast::http::verb::get);
+  get_request.target("/markdown/file.html");
+  http_response get_response = handler.handle_request(get_request);
+  EXPECT_EQ(get_response.result(), boost::beast::http::status::bad_request);
+}
+
+TEST_F(MarkdownHandlerTest, UpdateNonexistentFile){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+  http_request put_request;
+  put_request.method(boost::beast::http::verb::put);
+  put_request.set(boost::beast::http::field::content_type, MARKDOWN);
+  put_request.target("/markdown/file.md");
+  put_request.body() = "NEW BODY";
+  http_response put_response = handler.handle_request(put_request);
+  EXPECT_EQ(put_response.result(), boost::beast::http::status::not_found);
+}
+
+TEST_F(MarkdownHandlerTest, UpdateSuccess){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+  filesystem->write("/mnt/markdown/file.md", "");
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+  http_request put_request;
+  put_request.method(boost::beast::http::verb::put);
+  put_request.set(boost::beast::http::field::content_type, MARKDOWN);
+  put_request.target("/markdown/file.md");
+  put_request.body() = "NEW BODY";
+  http_response put_response = handler.handle_request(put_request);
+  EXPECT_EQ(put_response.result(), boost::beast::http::status::no_content);
+}
+
+TEST_F(MarkdownHandlerTest, PostNonMarkdownFile){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+  http_request post_request;
+  post_request.method(boost::beast::http::verb::post);
+  post_request.set(boost::beast::http::field::content_type, MARKDOWN);
+  post_request.target("/markdown/file.html");
+  post_request.body() = "NEW BODY";
+  http_response post_response = handler.handle_request(post_request);
+  EXPECT_EQ(post_response.result(), boost::beast::http::status::bad_request);
+}
+
+TEST_F(MarkdownHandlerTest, PostExistingFile){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+  filesystem->write("/mnt/markdown/file.md", "");
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+  http_request post_request;
+  post_request.method(boost::beast::http::verb::post);
+  post_request.set(boost::beast::http::field::content_type, MARKDOWN);
+  post_request.target("/markdown/file.md");
+  post_request.body() = "NEW BODY";
+  http_response post_response = handler.handle_request(post_request);
+  EXPECT_EQ(post_response.result(), boost::beast::http::status::bad_request);
 }

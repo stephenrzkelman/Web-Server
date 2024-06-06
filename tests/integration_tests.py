@@ -309,12 +309,12 @@ faucibus purus in massa. Ultricies integer quis auctor elit sed.\"\r\n\r\n'''
 
     )
 
-    # PUT request to create a file 
-    put_data = "markdown content"
+    # POST request to create a file 
+    post_data = "markdown content"
     tester.test_case_curl(
-        name="test_curl_MARKDOWN_PUT_creation",
+        name="test_curl_MARKDOWN_POST_creation",
         expected="",
-        args=['-X', 'PUT', '-d', put_data, '-H', 'Content-Type: text/markdown', 'localhost:80/markdown/test.md']
+        args=['-X', 'POST', '-d', post_data, '-H', 'Content-Type: text/markdown', 'localhost:80/markdown/test.md']
     ) 
 
     # PUT request for a non markdown file should fail

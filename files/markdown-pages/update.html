@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Create Markdown File</title>
+        <title>Update Markdown File</title>
         <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
         <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Bangers" />
         <link rel="stylesheet" href="styles.css">
@@ -20,7 +20,7 @@
                 let file = getMarkdownFileContents();
                 let file_length = file.length;
                 fetch(targetURL, {
-                    method: "POST",
+                    method: "PUT",
                     body: file,
                     headers: {
                         "Content-type": "text/markdown",
@@ -30,7 +30,7 @@
                     if(response.ok) {
                         const targetURL = getTargetURL();
                         document.getElementById("header").innerHTML = "Success!";
-                        document.getElementById("contents").innerHTML = "See your new markdown file here:";
+                        document.getElementById("contents").innerHTML = "See your updated markdown file here:";
                         let link = document.createElement("a");
                         link.innerHTML = targetURL;
                         link.href = targetURL;
@@ -39,7 +39,7 @@
                     }
                     else {
                         document.getElementById("header").innerHTML = "Error:";
-                        document.getElementById("contents").innerHTML = "We couldn't create your HTML file";
+                        document.getElementById("contents").innerHTML = "We couldn't update your HTML file";
                     }
                 })
             }
@@ -48,11 +48,11 @@
     <body>
         <header>
             <h1 id="header">
-                Create a Markdown file!
+                Update a Markdown file!
             </h1>
             <div id="inputbuttons">
                 <input placeholder="Markdown File Name" id="md-file-name">
-                <button onclick="submitMarkdown()">Create!</button>
+                <button onclick="submitMarkdown()">Update!</button>
             </div>
         </header>
         <main>

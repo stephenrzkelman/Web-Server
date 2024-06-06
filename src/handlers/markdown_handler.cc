@@ -26,6 +26,9 @@ http_response MarkdownHandler::handle_request(const http_request &request) {
 
   if (request.method() == boost::beast::http::verb::get) {
     return handle_get(target);
+  } else if (request.method() == boost::beast::http::verb::post &&
+                request.at(boost::beast::http::field::content_type) == MARKDOWN) {
+    return handle_post(target, request.body());
   } else if (request.method() == boost::beast::http::verb::put &&
                 request.at(boost::beast::http::field::content_type) == MARKDOWN) {
     return handle_put(target, request.body());
@@ -80,7 +83,13 @@ http_response MarkdownHandler::handle_put(const fs::path &path, std::string data
     return parseResponse(
         makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
   }
-
+  if (!filesystem_->exists(path)) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", NOT_FOUND_STATUS);
+    BOOST_LOG_TRIVIAL(warning)
+        << "MARKDOWN[PUT]: file requested to update does not exist " << path;
+    return parseResponse(
+        makeHeader(NOT_FOUND_STATUS, TEXT_PLAIN, 0));
+  }
   // write new body
   filesystem_->write(path, data);
 
@@ -89,6 +98,32 @@ http_response MarkdownHandler::handle_put(const fs::path &path, std::string data
   http_response response;
   response.result(boost::beast::http::status::no_content);
   return response;
+}
+
+http_response MarkdownHandler::handle_post(const fs::path &path, std::string data) {
+  FILE_TYPE file_type = filesystem_->fileType(path);
+  if (file_type != MARKDOWN_FILE) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    BOOST_LOG_TRIVIAL(warning)
+        << "MARKDOWN[POST]: file requested to post is not a Markdown file " << path;
+    return parseResponse(
+        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+  if (filesystem_->exists(path)) {
+    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    BOOST_LOG_TRIVIAL(warning)
+        << "MARKDOWN[POST]: file requested to create already exists " << path;
+    return parseResponse(
+        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+  }
+  // update body
+  filesystem_->write(path, data);
+
+  // 204 no_content as response for POST (check RFC for detail)
+  log_handle_request_details(std::string(path), "MarkdownHandler", NO_CONTENT_STATUS);
+  http_response response;
+  response.result(boost::beast::http::status::no_content);
+  return response;  
 }
 
 http_response MarkdownHandler::handle_delete(const fs::path &path) {

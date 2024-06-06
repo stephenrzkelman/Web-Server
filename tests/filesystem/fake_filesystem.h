@@ -50,6 +50,7 @@ public:
     }
     return filesystem_.at(filename);
   }
+  
   bool write(const std::filesystem::path &filename,
              const std::string &data) override {
     // If the given path is a directory, then return false
@@ -60,6 +61,7 @@ public:
     filesystem_[filename] = data;
     return true;
   }
+  
   bool remove(const std::filesystem::path &filename) override {
     if (!exists(filename)) {
       return false;
@@ -67,6 +69,7 @@ public:
     filesystem_.erase(filename);
     return true;
   }
+  
   bool is_directory(const std::filesystem::path &path) const override {
     for (const auto &[p, _] : filesystem_) {
       if (p.string().starts_with(path.string()) &&
