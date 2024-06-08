@@ -39,7 +39,7 @@ TEST_F(MarkdownHandlerTest, PostSuccess) {
   get_request.target("/markdown/burns.md");
   http_response response_get = handler.handle_request(get_request);
   EXPECT_EQ(response_get.result(), boost::beast::http::status::ok);
-  EXPECT_EQ(response_get.body(), "<p>NEW BODY BURNS</p>\n\n");
+  EXPECT_EQ(response_get.body(), "<p>NEW BODY BURNS</p>\n");
 }
 
 TEST_F(MarkdownHandlerTest, PutFailureDirectory) {
@@ -96,7 +96,7 @@ TEST_F(MarkdownHandlerTest, PostSuccessNewFile) {
   EXPECT_EQ(response_get.result(), boost::beast::http::status::ok);
   EXPECT_EQ(response_get.at(boost::beast::http::field::content_type),
             TEXT_HTML);
-  EXPECT_EQ(response_get.body(), "<p>NEW BODY BURNS</p>\n\n");
+  EXPECT_EQ(response_get.body(), "<p>NEW BODY BURNS</p>\n");
 
 }
 

@@ -31,6 +31,10 @@ set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.50 REQUIRED COMPONENTS system log_setup log filesystem)
 message(STATUS "Boost version: ${Boost_VERSION}")
 
+# find cmark
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(CMARK REQUIRED libcmark)
+
 # Add /include as an include directory 
 include_directories(include)
 
@@ -52,7 +56,6 @@ add_library(health_handler_lib OBJECT src/handlers/health_handler.cc)
 add_library(sleep_handler_lib OBJECT src/handlers/sleep_handler.cc)
 add_library(markdown_parser_lib src/markdown_parser.cc)
 add_library(markdown_handler_lib OBJECT src/handlers/markdown_handler.cc)
-add_library(markdown_lib src/markdown.cc src/markdown_tokens.cc)
 
 # Update C++ version for files that need cpp20 features like contains()
 target_compile_features(manager_lib PUBLIC cxx_std_20)
@@ -72,8 +75,7 @@ target_link_libraries(
     markdown_handler_lib
     Boost::log_setup Boost::log
 )
-target_link_libraries(markdown_lib PUBLIC Boost::regex)
-target_link_libraries(markdown_parser_lib markdown_lib)
+target_link_libraries(markdown_parser_lib ${CMARK_LIBRARIES})
 target_link_libraries(echo_handler_lib handler_lib Boost::log)
 target_link_libraries(static_handler_lib handler_lib filesystem_lib Boost::log_setup Boost::log)
 target_link_libraries(error_handler_lib handler_lib Boost::log_setup Boost::log)
@@ -154,6 +156,9 @@ add_executable(markdown_handler_test tests/markdown_handler_test.cc)
 target_compile_features(markdown_handler_test PUBLIC cxx_std_20)
 target_link_libraries(markdown_handler_test markdown_handler_lib gtest_main)
 
+add_executable(markdown_parser_test tests/markdown_parser_test.cc)
+target_link_libraries(markdown_parser_test markdown_parser_lib gtest_main)
+
 # Update with test binary
 gtest_discover_tests(config_parser_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(echo_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
@@ -165,6 +170,7 @@ gtest_discover_tests(filesystem_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DI
 gtest_discover_tests(crud_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(health_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 gtest_discover_tests(markdown_handler_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(markdown_parser_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
@@ -182,6 +188,7 @@ generate_coverage_report(
         server_lib  
         location_data_lib
         markdown_handler_lib
+        markdown_parser_lib
     TESTS 
         config_parser_test 
         echo_handler_test 
@@ -193,6 +200,7 @@ generate_coverage_report(
         filesystem_test
         crud_handler_test 
         markdown_handler_test
+        markdown_parser_test
 )
 
 # Add integration test

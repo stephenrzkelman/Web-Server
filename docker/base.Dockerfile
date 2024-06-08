@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     curl \
     gcovr \
+    git \
     httpie \
     libboost-log-dev \
     libboost-regex-dev \
@@ -17,4 +18,14 @@ RUN apt-get update && apt-get install -y \
     libgmock-dev \
     libgtest-dev \
     netcat \
-    python3
+    python3 \
+    pkg-config
+
+# install cmark
+RUN git clone https://github.com/commonmark/cmark.git && \
+    cd cmark && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install

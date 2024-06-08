@@ -327,7 +327,7 @@ faucibus purus in massa. Ultricies integer quis auctor elit sed.\"\r\n\r\n'''
     # GET request to check that test.md was created with proper content 
     tester.test_case_curl(
         name="test_curl_MARKDOWN_GET",
-        expected="<p>markdown content</p>\n\n",
+        expected="<p>markdown content</p>\n",
         args=['-X', 'GET', 'localhost:80/markdown/test.md']
     )
 
