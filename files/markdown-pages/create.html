@@ -7,10 +7,15 @@
         <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
         <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Bangers" />
         <link rel="stylesheet" href="styles.css">
+        <script src="utils.js"></script>
         <script>
             function getTargetURL() {
                 let doc = document.getElementById("md-file-name").value;
                 return `http://fortnite-gamers.org/markdown/${doc}`;
+            }
+            function getRawTargetURL() {
+                let doc = document.getElementById("md-file-name").value;
+                return `http://fortnite-gamers.org/raw-markdown/${doc}`;
             }
             function getMarkdownFileContents() {
                 return document.getElementById("md-file-contents").value;
@@ -19,6 +24,7 @@
                 let targetURL = getTargetURL();
                 let file = getMarkdownFileContents();
                 let file_length = file.length;
+                let error_text = undefined;
                 fetch(targetURL, {
                     method: "POST",
                     body: file,
@@ -27,21 +33,44 @@
                         "Content-length": file_length
                     }
                 }).then((response) => {
-                    if(response.ok) {
+                    console.log(`OK: ${response.ok}`);
+                    return [response.ok, response.status, response.statusText, response.text()];
+                }).then(([ok, status, reason, text]) => {
+                    let header = document.getElementById("header");
+                    let contents = document.getElementById("contents");
+                    contents.innerHTML = "";
+                    let message = document.createElement("h2");
+                    contents.appendChild(message);
+                    console.log(`OK: ${ok}`);
+                    if(ok) {
                         const targetURL = getTargetURL();
-                        document.getElementById("header").innerHTML = "Success!";
-                        document.getElementById("contents").innerHTML = "See your new markdown file here:";
+                        header.innerHTML = "Success!";
+                        message.innerHTML = "See your new markdown file here:";
                         let link = document.createElement("a");
                         link.innerHTML = targetURL;
                         link.href = targetURL;
                         link.target = "_blank";
-                        document.body.appendChild(link);
+                        message.appendChild(link);
+                        message.appendChild(document.createElement("br"));
+                        const targetRaw = getRawTargetURL();
+                        message.innerHTML.appendChild("See your raw new markdown file here:");
+                        let raw_link = document.createElement("a");
+                        raw_link.innerHTML = targetRaw;
+                        raw_link.href = targetRaw;
+                        raw_link.target = "_blank";
+                        message.appendChild(raw_link);
                     }
                     else {
-                        document.getElementById("header").innerHTML = "Error:";
-                        document.getElementById("contents").innerHTML = "We couldn't create your HTML file";
+                        header.innerHTML = "Error:";
+                        message.innerHTML += status + " ";
+                        message.innerHTML += reason + ":\n";
+                        error_text = text;
                     }
-                })
+                    if(error_text){
+                        message.innerHTML += error_text;
+                    }
+                    add_redirection_links();
+                });
             }
         </script>
     </head>
@@ -57,7 +86,13 @@
         </header>
         <main>
             <div id="contents">
-                <textarea id="md-file-contents" cols=100 rows = 50 placeholder="Markdown File Contents"></textarea>
+                <textarea 
+                    id="md-file-contents" 
+                    cols=100 
+                    rows = 50 
+                    placeholder="Markdown File Contents"
+                    value=""
+                ></textarea>
             </div>
         </main>
     </body>

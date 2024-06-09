@@ -25,12 +25,16 @@ location /markdown-manager StaticHandler{
 location /images StaticHandler{
     root /usr/src/projects/fortnite-gamers/files/images;
 }
+location /raw-markdown StaticHandler{
+    root ./markdown_files;
+}
 location /api CrudHandler{
     # TODO: change as needed
     data_path ./crud_files;
 }
 location /markdown MarkdownHandler{
     data_path ./markdown_files;
+    format_path /markdown-manager/markdown.css;
 }
 location /sleep SleepHandler{
 }

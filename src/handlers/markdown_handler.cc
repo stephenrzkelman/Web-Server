@@ -12,7 +12,9 @@ namespace fs = std::filesystem;
 MarkdownHandler::MarkdownHandler(std::string path,
                                  std::unordered_map<std::string, std::string> args,
                                  std::unique_ptr<FileSystemInterface> filesystem)
-    : path_(path), data_path_(args.at(MARKDOWN_HANDLER_DATA_PATH_ARG)),
+    : path_(path), 
+      data_path_(args.at(MARKDOWN_HANDLER_DATA_PATH_ARG)),
+      format_path_(args.at(MARKDOWN_HANDLER_FORMAT_PATH_ARG)),
       filesystem_(std::move(filesystem)) {}
 
 http_response MarkdownHandler::handle_request(const http_request &request) {
@@ -37,10 +39,10 @@ http_response MarkdownHandler::handle_request(const http_request &request) {
   }
 
   // Unimplemented functionality, return 400
-  log_handle_request_details(std::string(request.target()), "MarkdownHandler", BAD_REQUEST_STATUS);
+  log_handle_request_details(std::string(request.target()), "MarkdownHandler", NOT_SUPPORTED_STATUS);
   BOOST_LOG_TRIVIAL(debug) << "Markdown handler doesn't implement "
-                             << request.method() << "; returning BAD_REQUEST";
-  return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+                             << request.method() << "; returning NOT_SUPPORTED";
+  return parseResponse(makeHeader(NOT_SUPPORTED_STATUS, TEXT_PLAIN, 0));
 }
 
 RequestHandler *
@@ -55,20 +57,28 @@ http_response MarkdownHandler::handle_get(const fs::path &path) {
     log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "MARKDOWN[GET]: file requested to read is not a Markdown file " << path;
-    return parseResponse(
-        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    std::string body = "Could not retrieve '" + std::string(path) + "', not a markdown file";
+    std::string header = makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, body.length());
+    return parseResponse(header + body);
+  }
+  if (!filesystem_->exists(path)){
+    log_handle_request_details(std::string(path), "MarkdownHandler", NOT_FOUND_STATUS);
+    BOOST_LOG_TRIVIAL(warning)
+        << "MARKDOWN[GET]: file requested to get does not exist " << path;
+    return parseResponse(makeHeader(NOT_FOUND_STATUS, TEXT_PLAIN, 0));
   }
   const std::optional<std::string> file_opt = filesystem_->read(path);
   if (!file_opt.has_value()) {
-    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    log_handle_request_details(std::string(path), "MarkdownHandler", INTERNAL_SERVER_ERROR_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "MARKDOWN[GET]: failed to read file at path " << path;
-    return parseResponse(
-        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    std::string body = "Failed to read file " + std::string(path);
+    std::string header = makeHeader(INTERNAL_SERVER_ERROR_STATUS, TEXT_PLAIN, body.length());
+    return parseResponse(header + body);
   }
 
   log_handle_request_details(std::string(path), "MarkdownHandler", OK_STATUS);
-  MarkdownParser parser = MarkdownParser();
+  MarkdownParser parser = MarkdownParser(format_path_);
   const std::string body =  parser.parse_markdown(file_opt.value());
   const std::string header = makeHeader(OK_STATUS, TEXT_HTML, body.size());
   return parseResponse(header + body);
@@ -80,8 +90,9 @@ http_response MarkdownHandler::handle_put(const fs::path &path, std::string data
     log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "MARKDOWN[PUT]: file requested to put is not a Markdown file " << path;
-    return parseResponse(
-        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    std::string body = "Failed to update '" + std::string(path) + "', not a markdown file";
+    std::string header = makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, body.length());
+    return parseResponse(header + body);
   }
   if (!filesystem_->exists(path)) {
     log_handle_request_details(std::string(path), "MarkdownHandler", NOT_FOUND_STATUS);
@@ -106,15 +117,17 @@ http_response MarkdownHandler::handle_post(const fs::path &path, std::string dat
     log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "MARKDOWN[POST]: file requested to post is not a Markdown file " << path;
-    return parseResponse(
-        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    std::string body = "Failed to create '" + std::string(path) + "', file name must end with '.md'";
+    std::string header = makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, body.length());
+    return parseResponse(header + body);
   }
   if (filesystem_->exists(path)) {
     log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning)
         << "MARKDOWN[POST]: file requested to create already exists " << path;
-    return parseResponse(
-        makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    std::string body = "Failed to create '" + std::string(path) + "', file already exists";
+    std::string header = makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, body.length());
+    return parseResponse(header + body);
   }
   // update body
   filesystem_->write(path, data);
@@ -132,15 +145,17 @@ http_response MarkdownHandler::handle_delete(const fs::path &path) {
     log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
     BOOST_LOG_TRIVIAL(warning) << "MARKDOWN[DELETE]: request target " << path
                                << " is not a valid path element, trying to delete a directory";
-    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    std::string header = makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0);;
+    std::string body = "Cannot delete '" + std::string(path) + "', not a markdown file";
+    return parseResponse(header + body);
   }
 
   // file DNE
   if (!filesystem_->exists(path)) {
-    log_handle_request_details(std::string(path), "MarkdownHandler", BAD_REQUEST_STATUS);
+    log_handle_request_details(std::string(path), "MarkdownHandler", NOT_FOUND_STATUS);
     BOOST_LOG_TRIVIAL(debug)
         << "MARKDOWN[DELETE]: file at " << path << " does not exist";
-    return parseResponse(makeHeader(BAD_REQUEST_STATUS, TEXT_PLAIN, 0));
+    return parseResponse(makeHeader(NOT_FOUND_STATUS, TEXT_PLAIN, 0));
   }
 
   // couldn't remove

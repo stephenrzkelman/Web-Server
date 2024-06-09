@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Delete Markdown File</title>
+        <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+        <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Bangers" />
+        <link rel="stylesheet" href="styles.css">
+        <script src="utils.js"></script>
+        <script>
+            function getTargetURL() {
+                let doc = document.getElementById("md-file-name").value;
+                return `http://fortnite-gamers.org/markdown/${doc}`;
+            }
+            function deleteMarkdown() {
+                let targetURL = getTargetURL();
+                fetch(targetURL, {
+                    method: "DELETE"
+                }).then((response) => {
+                    return [response.ok, response.text()];
+                }).then(([ok, text]) => {
+                    let header = document.getElementById("header");
+                    let contents = document.getElementById("contents");
+                    contents.innerHTML = "";
+                    let message = document.createElement("h2");
+                    contents.appendChild(message);
+                    if(ok) {
+                        const targetURL = getTargetURL();
+                        header.innerHTML = "Success!";
+                        message.innerHTML = "Deleted your markdown file: " + targetURL;
+                        contents.appendChild(message);
+                    }
+                    else {
+                        header.innerHTML = "Error:";
+                        message.appendChild(text);
+                    }
+                    add_redirection_links();
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <header>
+            <h1 id="header">
+                Delete a Markdown file!
+            </h1>
+            <div id="inputbuttons">
+                <input placeholder="Markdown File Name" id="md-file-name">
+                <button onclick="deleteMarkdown()">Delete!</button>
+            </div>
+        </header>
+        <main>
+            <div id="contents"></div>
+        </main>
+    </body>
+</html>
