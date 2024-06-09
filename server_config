@@ -31,7 +31,6 @@ location /api CrudHandler{
 }
 location /markdown MarkdownHandler{
     data_path ./markdown_files;
-    format_path /markdown-manager/markdown.css;
 }
 location /sleep SleepHandler{
 }

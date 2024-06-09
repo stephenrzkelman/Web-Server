@@ -59,13 +59,6 @@ http_response StaticHandler::handle_request(const http_request &request) {
       BOOST_LOG_TRIVIAL(info) << "CSS file requested";
       content_type = TEXT_CSS;
       break;
-    case JS_FILE:
-      BOOST_LOG_TRIVIAL(info) << "JS file requested";
-      content_type = TEXT_JS;
-      break;
-    case PNG_FILE:
-      BOOST_LOG_TRIVIAL(info) << "PNG file requested";
-      content_type = IMAGE_PNG;
     }
   }
   content_length += responseString.size();

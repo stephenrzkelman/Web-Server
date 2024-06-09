@@ -31,5 +31,4 @@ location /api CrudHandler{
 }
 location /markdown MarkdownHandler{
     data_path /mnt/storage/markdown_files;
-    format_path /markdown-manager/markdown.css;
 }

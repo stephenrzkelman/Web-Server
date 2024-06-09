@@ -44,7 +44,7 @@ void session::handle_write(const boost::system::error_code &error,
     delete this;
     return;
   }
-  request_.body() = "";
+
   boost::beast::http::async_read(
       socket_, request_buf_, request_,
       boost::beast::bind_front_handler(&session::handle_read, this));

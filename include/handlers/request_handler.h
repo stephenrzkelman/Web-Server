@@ -17,9 +17,7 @@ const std::string CRLF = "\r\n";
 const std::string TEXT_PLAIN = "text/plain";
 const std::string TEXT_HTML = "text/html";
 const std::string TEXT_CSS = "text/css";
-const std::string TEXT_JS = "text/javascript";
 const std::string IMAGE_JPEG = "image/jpeg";
-const std::string IMAGE_PNG = "image/png";
 const std::string IMAGE_X_ICON = "image/x-icon";
 const std::string APPLICATION_ZIP = "application/zip";
 const std::string JSON = "application/json";
@@ -31,14 +29,12 @@ enum RESPONSE_CODE : unsigned int {
     NO_CONTENT_STATUS = 204,
     BAD_REQUEST_STATUS = 400,
     NOT_FOUND_STATUS = 404,
-    NOT_SUPPORTED_STATUS = 405,
     INTERNAL_SERVER_ERROR_STATUS = 500
 };
 const std::unordered_map<uint, std::string> STATUS_CODE_REASONS = {
     {OK_STATUS, "OK"},
     {BAD_REQUEST_STATUS, "Bad Request"},
     {NOT_FOUND_STATUS, "Not Found"},
-    {NOT_SUPPORTED_STATUS, "Method Not Allowed"},
     {INTERNAL_SERVER_ERROR_STATUS, "Internal Server Error"}
 };
 
