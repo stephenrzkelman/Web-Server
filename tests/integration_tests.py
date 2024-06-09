@@ -301,12 +301,11 @@ faucibus purus in massa. Ultricies integer quis auctor elit sed.\"\r\n\r\n'''
     )
 
     ## Markdown Handler Tests
-    # GET request for a nonexistant file 
+    # GET request for a nonexistent file 
     tester.test_case_curl( 
-        name="test_curl_MARKDOWN_GET_nonexistant",
+        name="test_curl_MARKDOWN_GET_nonexistent",
         expected="",
         args=['-X', 'GET', 'localhost:80/markdown/dne.md']
-
     )
 
     # POST request to create a file 
@@ -320,14 +319,23 @@ faucibus purus in massa. Ultricies integer quis auctor elit sed.\"\r\n\r\n'''
     # PUT request for a non markdown file should fail
     tester.test_case_curl(
         name="test_curl_MARKDOWN_PUT_not_markdown",
-        expected="",
+        expected="Failed to update './markdown_files/not_md_file', not a markdown file",
         args=['-X', 'PUT', '-d', put_data, '-H', 'Content-Type: text/markdown', 'localhost:80/markdown/not_md_file']
     ) 
 
     # GET request to check that test.md was created with proper content 
     tester.test_case_curl(
         name="test_curl_MARKDOWN_GET",
-        expected="<p>markdown content</p>\n",
+        expected="""<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="/markdown-manager/markdown.css">
+</head>
+<body>
+<p>markdown content</p>
+</body>
+</html>
+""",
         args=['-X', 'GET', 'localhost:80/markdown/test.md']
     )
 

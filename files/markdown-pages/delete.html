@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Update Markdown File</title>
+        <title>Delete Markdown File</title>
         <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
         <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Bangers" />
         <link rel="stylesheet" href="styles.css">
@@ -13,20 +13,10 @@
                 let doc = document.getElementById("md-file-name").value;
                 return `http://fortnite-gamers.org/markdown/${doc}`;
             }
-            function getMarkdownFileContents() {
-                return document.getElementById("md-file-contents").value;
-            }
-            function submitMarkdown() {
+            function deleteMarkdown() {
                 let targetURL = getTargetURL();
-                let file = getMarkdownFileContents();
-                let file_length = file.length;
                 fetch(targetURL, {
-                    method: "PUT",
-                    body: file,
-                    headers: {
-                        "Content-type": "text/markdown",
-                        "Content-length": file_length
-                    }
+                    method: "DELETE"
                 }).then((response) => {
                     return [response.ok, response.text()];
                 }).then(([ok, text]) => {
@@ -38,12 +28,8 @@
                     if(ok) {
                         const targetURL = getTargetURL();
                         header.innerHTML = "Success!";
-                        message.innerHTML = "See your updated markdown file here:";
-                        let link = document.createElement("a");
-                        link.innerHTML = targetURL;
-                        link.href = targetURL;
-                        link.target = "_blank";
-                        message.appendChild(link);
+                        message.innerHTML = "Deleted your markdown file: " + targetURL;
+                        contents.appendChild(message);
                     }
                     else {
                         header.innerHTML = "Error:";
@@ -57,23 +43,15 @@
     <body>
         <header>
             <h1 id="header">
-                Update a Markdown file!
+                Delete a Markdown file!
             </h1>
             <div id="inputbuttons">
                 <input placeholder="Markdown File Name" id="md-file-name">
-                <button onclick="submitMarkdown()">Update!</button>
+                <button onclick="deleteMarkdown()">Delete!</button>
             </div>
         </header>
         <main>
-            <div id="contents">
-                <textarea 
-                    id="md-file-contents" 
-                    cols=100 
-                    rows = 50 
-                    placeholder="Markdown File Contents"
-                    value=""
-                ></textarea>
-            </div>
+            <div id="contents"></div>
         </main>
     </body>
 </html>
