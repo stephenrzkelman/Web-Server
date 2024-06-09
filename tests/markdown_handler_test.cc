@@ -218,6 +218,18 @@ TEST_F(MarkdownHandlerTest, PostNonMarkdownFile){
   EXPECT_EQ(post_response.result(), boost::beast::http::status::bad_request);
 }
 
+TEST_F(MarkdownHandlerTest, PostDirectory){
+  std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
+  MarkdownHandler handler("/markdown", {{"data_path", "/mnt/markdown"}}, std::move(filesystem));
+  http_request post_request;
+  post_request.method(boost::beast::http::verb::post);
+  post_request.set(boost::beast::http::field::content_type, MARKDOWN);
+  post_request.target("/markdown/directory");
+  post_request.body() = "NEW BODY";
+  http_response post_response = handler.handle_request(post_request);
+  EXPECT_EQ(post_response.result(), boost::beast::http::status::bad_request);
+}
+
 TEST_F(MarkdownHandlerTest, PostExistingFile){
   std::unique_ptr<FileSystemInterface> filesystem = std::make_unique<FakeFileSystem>();
   filesystem->write("/mnt/markdown/file.md", "");
